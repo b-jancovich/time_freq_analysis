@@ -43,17 +43,24 @@ elseif f1 < f2
 end
 
 % ratio of 't' to 'f'
-r = round(nsamps / nf);
+r = floor(nsamps / nf);
 
 % Hold each frequency coordinate for 'r' time samples
 f_reshaped = repelem(f_indices, r);
 
 if length(f_reshaped) < nsamps
-    last = f_reshaped(end);
-    lastsamps = (last * ones(1, nsamps-length(f_reshaped))) -1;
-    f_reshaped = [f_reshaped, lastsamps];
+    diff = nsamps-length(f_reshaped);
+    xtra = linspace(f_reshaped(end)+1, f_reshaped(end)+floor((diff/r)), floor(diff/r));
+    xtra = repelem(xtra, r);
+    f_reshaped = [f_reshaped, xtra];
+    if length(f_reshaped) < nsamps
+        diff = nsamps-length(f_reshaped);
+        f_reshaped = [f_reshaped, f_reshaped(end) * ones(1, diff)];
+    end
 elseif length(f_reshaped) > nsamps
     killsamps = length(f_reshaped) - nsamps;
+    rkill = ceil(killsamps / r);
+    f_reshaped(rkill:rkill:end,:) = [];
     f_reshaped = f_reshaped(1: end-killsamps);
 else
 end
@@ -61,7 +68,7 @@ end
 % Build Matrix
 if f1 ~= f2
     % Accumulate 'amp' to matrix according to coordinates in t and f
-    MAT = accumarray([f_reshaped', t'], amp, [nf, nsamps]);
+    MAT = accumarray([f_reshaped', t'], amp, [max(f_reshaped), nsamps]); % the max(f_reshaped) was 'nf' before but changed to handle the new "if f_reshaped is short" stuff
 elseif f1 == f2
     MAT = amp .* (ones(1, nsamps));
 end
