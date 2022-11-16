@@ -63,7 +63,7 @@ order = [10 50];    % Interval of superresolution orders
 mult = 1;           % Multiplicative ('1') or additive ('0') superresolution 
 fmin_swt = 10;      % Cutoff of DC filter (Hz)
 
-%% Generate signals 
+%% Generate time & Frequency Vectors
 
 % Frequency & samp counts
 n_samps_sweep = duration_sweep * fs;
@@ -78,6 +78,8 @@ t_vec_total = linspace(0, n_samps_total/fs, n_samps_total);
 % Frequency vectors
 f_vec_sweep = linspace(carrier_freq1, carrier_freq2, n_freqs_sweep);
 f_vec_total = linspace(fmin, fmax, n_freqs_total);
+
+%% Generate signals 
 
 % Generate Sine Sweep (Carrier Signal)
 signal = chirp(t_vec_sweep, carrier_freq1, t_vec_sweep(end), carrier_freq2, 'linear'); 
@@ -246,7 +248,7 @@ np4 = 4;
 
 % Init figure
 figure(1)
-tiledlayout('flow')
+t1 = tiledlayout('flow');
 
 % Plot RMSE
 nexttile
@@ -276,6 +278,8 @@ lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
 title('Root Mean Squared Error in Time, Freq & Total', FontWeight='bold', fontsize=12)
+set(gca, 'fontsize', 12)
+grid on
 
 % Plot Structural Similarity Index
 nexttile
@@ -288,6 +292,8 @@ text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','right',...
 ylabel 'SSI re. Ground Truth'
 title('Structural Similarity Index', FontWeight='bold', fontsize=12)
 ylim([0 1])
+set(gca, 'fontsize', 12)
+grid on
 
 % Plot PSNR
 nexttile
@@ -300,6 +306,8 @@ text(xtips1_3,ytips1_3,labels1_3,'HorizontalAlignment','right',...
 ylabel 'PSNR re. Ground Truth'
 title('Peak Signal to Noise Ratio', FontWeight='bold', fontsize=12)
 ylim([0 30])
+set(gca, 'fontsize', 12)
+grid on
 
 % Plot MSE
 nexttile
@@ -312,6 +320,13 @@ text(xtips1_4,ytips1_4,labels1_4,'HorizontalAlignment','right',...
 ylabel 'MSE re. Ground Truth'
 title('Mean Squared Error', FontWeight='bold', fontsize=12)
 ylim([0 0.015])
+set(gca, 'fontsize', 12)
+grid on
+
+t1.TileSpacing = 'compact';
+t1.Padding = 'compact';
+set(gcf, 'Position', [500 400 800 500])
+% saveas(gcf,'time_vs_freq_simplesig','svg')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figure 2 - Time Freq Images
@@ -323,7 +338,7 @@ timelim = [0 (n_samps_total/fs)];
 
 % Init figure
 figure (2)
-tiledlayout('flow')
+t2 = tiledlayout('flow');
 
 % plot time domain signal
 nexttile
@@ -335,6 +350,17 @@ ylabel('Amplitude (Normalized)');
 xlabel('Time (Seconds)');
 ylim([-1.5 1.5])
 xlim(timelim)
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
@@ -350,6 +376,17 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Short Window
 nexttile
@@ -365,6 +402,17 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Long Window
 nexttile
@@ -380,6 +428,17 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 % Plot CWT
 nexttile
@@ -395,6 +454,17 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 % Plot Superlets
 nexttile
@@ -410,3 +480,19 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
+set(gca, 'fontsize', 12)
+ax = gca;
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
+
+t2.TileSpacing = 'compact';
+t2.Padding = 'compact';
+set(gcf, 'Position', [500 400 800 500])
+% saveas(gcf,'time_vs_freq_simplesig','svg')
