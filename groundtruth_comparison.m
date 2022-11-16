@@ -28,34 +28,35 @@ clc
 
 %% User Variables
 
+% NOTE: STFT Overlap is locked at 50%
+% STFT FFT size is locked at n_freqs_total*2 = 1250. This results in equal
+% number of frequency points between fmin and fmax for all methods. This is set
+% using fmin, fmax and fres for other methods.
+
 % Test Signal Parameters:
-carrier_freq1 = 50;            % Sine Sweep start frequency (Hz)
-carrier_freq2 = 35;            % Sine Sweep end frequency (Hz)
-mod_freq1 = 2;          % Amplitude Modulation sweep start frequency (Hz)
-mod_freq2 = 6;          % Amplitude Modulation sweep end frequency (Hz)
-duration_sweep = 5;      % Sweep Duration
-silence = 2;         % silence to pad start and end (seconds)
-fs = 250;           % Sampling Frequency
+carrier_freq1 = 50;         % Sine Sweep start frequency (Hz)
+carrier_freq2 = 35;         % Sine Sweep end frequency (Hz)
+mod_freq1 = 2;              % Amplitude Modulation sweep start frequency (Hz)
+mod_freq2 = 6;              % Amplitude Modulation sweep end frequency (Hz)
+duration_sweep = 5;         % Sweep Duration
+silence = 2;                % Silence to pad start and end (seconds)
+fs = 250;                   % Sampling Frequency (Hz)
 
 % Ground Truth Parameters:
-sigma = 1; % standard deviation of gaussian filter
+sigma = 1;                  % Standard deviation of gaussian filter
 
 % Signal Analysis Parameters
-fmin = 0;           % Lowest frquency of interest
-fmax = fs/2;        % Highest frequency of interest
-f_res = 0.2;        % Frequency resolution (Hz)
+fmin = 10;                  % Lowest frquency of interest
+fmax = fs/2;                % Highest frequency of interest
+f_res = 0.2;                % Frequency resolution (Hz)
 
 % STFT Window Sizes
-win1 = 200;            % spectrogram time window (samples)
-win2 = 50;             % spectrogram time window (samples)
-
-% NOTE: STFT Overlap is locked at 50%
-% NFFT is locked at n_freqs_total*2 = 1250 - This results in equal
-% theoretical frequency resolution between methods.
+win1 = 200;                 % Spectrogram time window (samples)
+win2 = 50;                  % Spectrogram time window (samples)
 
 % CWT Parameters
-tbp = 100; % Time bandwidth product of Morse wavelet. Scalar, >= 3, <= 120.
-vpo = 20; % Voices per Octave. Int, >= 1, <= 48.
+tbp = 100;      % Time bandwidth product of Morse wavelet. Scalar, >= 3, <= 120.
+vpo = 20;       % Voices per Octave. Int, >= 1, <= 48.
 
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
@@ -115,19 +116,19 @@ lsb3_f2 = carrier_freq2 - (mod_freq2 * 5);
 % Build matrices representing carrier and sidebands
 % (f1, f2, f_res, nsamps, amp, rowsOUT)
 amp = ones(1, n_samps_sweep);
-carrier_MAT = sweep_time_freq_mat(carrier_freq1, carrier_freq2,...
+carrier_MAT = tfmatgen(carrier_freq1, carrier_freq2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-usb1_MAT = sweep_time_freq_mat(usb1_f1, usb1_f2,...
+usb1_MAT = tfmatgen(usb1_f1, usb1_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-usb2_MAT = sweep_time_freq_mat(usb2_f1, usb2_f2,...
+usb2_MAT = tfmatgen(usb2_f1, usb2_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-usb3_MAT = sweep_time_freq_mat(usb3_f1, usb3_f2,...
+usb3_MAT = tfmatgen(usb3_f1, usb3_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-lsb1_MAT = sweep_time_freq_mat(lsb1_f1, lsb1_f2,...
+lsb1_MAT = tfmatgen(lsb1_f1, lsb1_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-lsb2_MAT = sweep_time_freq_mat(lsb2_f1, lsb2_f2,...
+lsb2_MAT = tfmatgen(lsb2_f1, lsb2_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-lsb3_MAT = sweep_time_freq_mat(lsb3_f1, lsb3_f2,...
+lsb3_MAT = tfmatgen(lsb3_f1, lsb3_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
 
 % Combine matrices for all components
@@ -161,8 +162,8 @@ n_fft = n_freqs_total*2;
     win2, win2/2, n_fft, fs, "yaxis");
 
 % Convert magnitude to power 
-stft_longwin = rescale(abs(stft_longwin)' .^2);    
-stft_shortwin = rescale(abs(stft_shortwin)' .^2); 
+stft_longwin = rescale(abs(stft_longwin) .^2);    
+stft_shortwin = rescale(abs(stft_shortwin) .^2); 
 
 % Compute CWT
 [wavelet, frq] = cwt(signal, fs, FrequencyLimits=[fmin fmax], ...
@@ -217,16 +218,12 @@ stft_longwin_immse = immse(stft_longwin_resz, all_MAT);
 wavelet_immse = immse(wavelet_resz, all_MAT);
 superlet_immse = immse(superlets_resz, all_MAT);
 
-%% Plotting 
+%% Plot Figure 1 - Error
+
 
 % Dynamic STFT titles 
 stftlong_name = ['STFT, ', num2str(win1), 'pt. Window'];
 stftshort_name = ['STFT, ', num2str(win2), 'pt. Window'];
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure 1 - Error
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Collate Error data for plotting
 xlabels1 = categorical({'RMSE - Frequency', 'RMSE - Time', 'Total RMSE'});
@@ -328,9 +325,8 @@ t1.Padding = 'compact';
 set(gcf, 'Position', [500 400 800 500])
 % saveas(gcf,'time_vs_freq_simplesig','svg')
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figure 2 - Time Freq Images
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Plot Figure 2 - Time-Freq Representations
 
 % Common Axis limits
 freqlim = [10 70];
@@ -351,7 +347,6 @@ xlabel('Time (Seconds)');
 ylim([-1.5 1.5])
 xlim(timelim)
 set(gca, 'fontsize', 12)
-ax = gca;
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -378,7 +373,6 @@ ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
 set(gca, 'fontsize', 12)
 ax = gca;
-ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
 ax.GridAlpha = 0.15;
@@ -390,7 +384,7 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Short Window
 nexttile
-surf(stftshort_freq, stftshort_time, stft_shortwin, EdgeColor = 'none', FaceColor='texturemap')
+surf(stftshort_freq, stftshort_time, stft_shortwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
 ylabel(a,'Power (Normalized)');
 title(stftshort_name, FontWeight='bold', fontsize=12)
@@ -404,7 +398,6 @@ ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
 set(gca, 'fontsize', 12)
 ax = gca;
-ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
 ax.GridAlpha = 0.15;
@@ -416,7 +409,7 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Long Window
 nexttile
-surf(stftlong_freq, stftlong_time, stft_longwin, EdgeColor = 'none', FaceColor='texturemap')
+surf(stftlong_freq, stftlong_time, stft_longwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
 ylabel(a,'Power (Normalized)');
 title(stftlong_name, FontWeight='bold', fontsize=12)
@@ -429,7 +422,6 @@ xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
 set(gca, 'fontsize', 12)
-ax = gca;
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -456,7 +448,6 @@ ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
 set(gca, 'fontsize', 12)
 ax = gca;
-ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
 ax.GridAlpha = 0.15;
@@ -481,7 +472,6 @@ xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
 set(gca, 'fontsize', 12)
-ax = gca;
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
