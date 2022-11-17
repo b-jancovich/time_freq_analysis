@@ -12,6 +12,8 @@
 % time-frequency analysis algorithms on the test signal and compares the 
 % results with ground truth.
 
+% Note: if carrier and 
+
 % Methods compared:
 % Short Time Fourier Transform (short window)
 % Short Time Fourier Transform (long window)
@@ -37,9 +39,9 @@ clc
 carrier_freq1 = 50;         % Sine Sweep start frequency (Hz)
 carrier_freq2 = 35;         % Sine Sweep end frequency (Hz)
 mod_freq1 = 2;              % Amplitude Modulation sweep start frequency (Hz)
-mod_freq2 = 6;              % Amplitude Modulation sweep end frequency (Hz)
+mod_freq2 = 7;              % Amplitude Modulation sweep end frequency (Hz)
 duration_sweep = 5;         % Sweep Duration
-silence = 2;                % Silence to pad start and end (seconds)
+silence = 1;                % Silence to pad start and end (seconds)
 fs = 250;                   % Sampling Frequency (Hz)
 
 % Ground Truth Parameters:
@@ -113,9 +115,18 @@ lsb2_f2 = carrier_freq2 - (mod_freq2 * 3);
 lsb3_f1 = carrier_freq1 - (mod_freq1 * 5);
 lsb3_f2 = carrier_freq2 - (mod_freq2 * 5);
 
+%% Error handling
+sideband_freqs = [usb1_f1, usb1_f2, usb2_f1, usb2_f2, usb3_f1, usb3_f2,...
+    lsb1_f1, lsb1_f2, lsb2_f1, lsb2_f2, lsb3_f1, lsb3_f2];
+assert(all(sideband_freqs >= 0), ['ERROR: THE PRODUCT OF CARRIER AND ' ...
+    'MODULATOR FREQUENCIES YOU HAVE ENTERED HAS RESULTED IN A FREQUENCY ' ...
+    'COMPONENT WITH NEGATIVE FREQUENCY. THIS IS NOT SUPPORTED. PLEASE ' ...
+    'INCREASE LOWEST CARRIER OR MODULATOR FREQUENCY'])
+
 % Build matrices representing carrier and sidebands
 % (f1, f2, f_res, nsamps, amp, rowsOUT)
 amp = ones(1, n_samps_sweep);
+
 carrier_MAT = tfmatgen(carrier_freq1, carrier_freq2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
 usb1_MAT = tfmatgen(usb1_f1, usb1_f2,...
@@ -128,7 +139,7 @@ lsb1_MAT = tfmatgen(lsb1_f1, lsb1_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
 lsb2_MAT = tfmatgen(lsb2_f1, lsb2_f2,...
     f_res, n_samps_sweep, amp, n_freqs_total);
-lsb3_MAT = tfmatgen(lsb3_f1, lsb3_f2,...
+lsb3_MAT = tfmatgen(lsb3_f1, lsb3_f2,... 
     f_res, n_samps_sweep, amp, n_freqs_total);
 
 % Combine matrices for all components
@@ -136,6 +147,11 @@ all_MAT = carrier_MAT + (usb1_MAT .* 0.5) + ...
     (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) +...
     (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) +...
     (lsb3_MAT .* 0.125);
+
+% Due to fmin being constant=0 in tfmatgen.m, and a variable in this
+% script, the ground truth matrix is shifted up in frequency by the value 
+% of fmin/f_res+1. Use circshift to shift it back down.
+all_MAT = circshift(all_MAT, (fmin/f_res)+1, 1);
 
 % Apply amplitude modulation
 modMAT = repmat(mod,[n_freqs_total, 1]);
@@ -147,7 +163,8 @@ all_MAT = imgaussfilt(all_MAT, sigma);
 % Gaussian has changed range of values. Rescale to 0-1.
 all_MAT = rescale(all_MAT);
 
-% Add silence to start and end
+% Add silence to start and end % REMOVE FLIP - This was a hack to fix a bug
+% in tfmatgen - the bug is fexed properly
 all_MAT = flip([zeros(n_freqs_total, silence*fs), all_MAT, zeros(n_freqs_total, silence*fs)], 1);
 
 %% Compute Transforms
@@ -316,7 +333,7 @@ text(xtips1_4,ytips1_4,labels1_4,'HorizontalAlignment','right',...
     'VerticalAlignment','bottom')
 ylabel 'MSE re. Ground Truth'
 title('Mean Squared Error', FontWeight='bold', fontsize=12)
-ylim([0 0.015])
+ylim([0 0.025])
 set(gca, 'fontsize', 12)
 grid on
 
@@ -348,13 +365,13 @@ ylim([-1.5 1.5])
 xlim(timelim)
 set(gca, 'fontsize', 12)
 ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
+ax.Layer = 'bottom';
+ax.GridColor = [0 0 0];
 ax.GridAlpha = 0.15;
 ax.XMinorGrid = 'on';
 ax.YMinorGrid = 'on';
 ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
+ax.MinorGridColor = [0 0 0];
 ax.MinorGridAlpha = 0.15;
 
 % Plot matrix "grund truth" time-frequency representation.
