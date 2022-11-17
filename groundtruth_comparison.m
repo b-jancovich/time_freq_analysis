@@ -243,8 +243,8 @@ stftlong_name = ['STFT, ', num2str(win1), 'pt. Window'];
 stftshort_name = ['STFT, ', num2str(win2), 'pt. Window'];
 
 % Collate Error data for plotting
-xlabels1 = categorical({'RMSE - Frequency', 'RMSE - Time', 'Total RMSE'});
-xlabels1 = reordercats(xlabels1,{'RMSE - Frequency', 'RMSE - Time', 'Total RMSE'});
+xlabels1 = categorical({'RMSE - Freq', 'RMSE - Time', 'Total RMSE'});
+xlabels1 = reordercats(xlabels1,{'RMSE - Freq', 'RMSE - Time', 'Total RMSE'});
 ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, wavelet_freqerror, superlet_freqerror;
     stft_shortwin_timeerror, stft_longwin_timeerror, wavelet_timeerror, superlet_timeerror;
     stft_shortwin_totalerror, stft_longwin_totalerror, wavelet_totalerror, superlet_totalerror];
@@ -260,87 +260,86 @@ np2 = 3;
 np3 = 2;
 np4 = 4;
 
-% Init figure
-figure(1)
-t1 = tiledlayout('flow');
-
 % Plot RMSE
-nexttile
+figure(1)
 b1 = bar(xlabels1, ydata1);
 xtips1 = b1(1).XEndPoints;
 ytips1 = b1(1).YEndPoints;
 labels1 = string(round(b1(1).YData, np1));
-text(xtips1,ytips1,labels1,'HorizontalAlignment','right',...
-    'VerticalAlignment','bottom')
+text(xtips1,ytips1,labels1,'HorizontalAlignment','left',...
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
 xtips2 = b1(2).XEndPoints;
 ytips2 = b1(2).YEndPoints;
 labels2 = string(round(b1(2).YData, np1));
-text(xtips2,ytips2,labels2,'HorizontalAlignment','right',...
-    'VerticalAlignment','bottom')
+text(xtips2,ytips2,labels2,'HorizontalAlignment','left',...
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
 xtips3 = b1(3).XEndPoints;
 ytips3 = b1(3).YEndPoints;
 labels3 = string(round(b1(3).YData, np1));
 text(xtips3,ytips3,labels3,'HorizontalAlignment','left',...
-    'VerticalAlignment','bottom')
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
 xtips4 = b1(4).XEndPoints;
 ytips4 = b1(4).YEndPoints;
 labels4 = string(round(b1(4).YData, np1));
 text(xtips4,ytips4,labels4,'HorizontalAlignment','left',...
-    'VerticalAlignment','bottom')
-ylim([0 0.15])
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
+ylim([0 0.2])
 lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
 title('Root Mean Squared Error in Time, Freq & Total', FontWeight='bold', fontsize=12)
 set(gca, 'fontsize', 12)
 grid on
+set(gcf, 'Position', [50 50 500 500])
+saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
 % Plot Structural Similarity Index
-nexttile
+figure(2)
 b2 = bar(xlabels2, ydata2);
 xtips1_2 = b2(1).XEndPoints;
 ytips1_2 = b2(1).YEndPoints;
 labels1_2 = string(round(b2(1).YData, np2));
-text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','right',...
+text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'SSI re. Ground Truth'
 title('Structural Similarity Index', FontWeight='bold', fontsize=12)
 ylim([0 1])
 set(gca, 'fontsize', 12)
 grid on
+set(gcf, 'Position', [50 50 350 350])
+saveas(gcf,'Final_methods_analytical_SSI','svg')
 
 % Plot PSNR
-nexttile
+figure(3)
 b3 = bar(xlabels2, ydata3);
 xtips1_3 = b3(1).XEndPoints;
 ytips1_3 = b3(1).YEndPoints;
 labels1_3 = string(round(b3(1).YData, np3));
-text(xtips1_3,ytips1_3,labels1_3,'HorizontalAlignment','right',...
+text(xtips1_3,ytips1_3,labels1_3,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'PSNR re. Ground Truth'
 title('Peak Signal to Noise Ratio', FontWeight='bold', fontsize=12)
 ylim([0 30])
 set(gca, 'fontsize', 12)
 grid on
+set(gcf, 'Position', [50 50 350 350])
+saveas(gcf,'Final_methods_analytical_PSNR','svg')
 
 % Plot MSE
-nexttile
+figure(4)
 b4 = bar(xlabels2, ydata4);
 xtips1_4 = b4(1).XEndPoints;
 ytips1_4 = b4(1).YEndPoints;
 labels1_4 = string(round(b4(1).YData, np4));
-text(xtips1_4,ytips1_4,labels1_4,'HorizontalAlignment','right',...
+text(xtips1_4,ytips1_4,labels1_4,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'MSE re. Ground Truth'
 title('Mean Squared Error', FontWeight='bold', fontsize=12)
-ylim([0 0.025])
+ylim([0 0.03])
 set(gca, 'fontsize', 12)
 grid on
-
-t1.TileSpacing = 'compact';
-t1.Padding = 'compact';
-set(gcf, 'Position', [500 400 800 500])
-% saveas(gcf,'time_vs_freq_simplesig','svg')
+set(gcf, 'Position', [50 50 350 350])
+saveas(gcf,'Final_methods_analytical_MSE','svg')
 
 
 %% Plot Figure 2 - Time-Freq Representations
@@ -350,7 +349,7 @@ freqlim = [10 70];
 timelim = [0 (n_samps_total/fs)];
 
 % Init figure
-figure (2)
+figure (5)
 t2 = tiledlayout('flow');
 
 % plot time domain signal
@@ -378,7 +377,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)');
+ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -403,7 +402,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftshort_freq, stftshort_time, stft_shortwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)');
+ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
 title(stftshort_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -428,7 +427,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftlong_freq, stftlong_time, stft_longwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)');
+ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
 title(stftlong_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -453,7 +452,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(frq, tms, wavelet', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)');
+ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
 title('CWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -478,7 +477,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_vec_total, t_vec_total, superlets', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)');
+ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
 title('SWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -501,5 +500,5 @@ ax.MinorGridAlpha = 0.15;
 
 t2.TileSpacing = 'compact';
 t2.Padding = 'compact';
-set(gcf, 'Position', [500 400 800 500])
-% saveas(gcf,'time_vs_freq_simplesig','svg')
+set(gcf, 'Position', [50 100 1200 650])
+saveas(gcf,'Final_methods_compare_plot_analytical','svg')
