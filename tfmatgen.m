@@ -9,8 +9,8 @@ function OUTMAT = sweep_time_freq_mat(f1, f2, fres, nsamps, amp, rowsOUT)
 % larger than MAT, zeros will be padded to achieve szOUT.
 
 % Inputs:
-% f1 =      Sweep starting frequency (Hz)
-% f2 =      Sweep ending frequency (Hz)
+% f1 =      Sweep starting frequency (Hz, >0)
+% f2 =      Sweep ending frequency (Hz, >0)
 % fres =    Frequency resolution (Hz)
 % nsamps =  Duration for sweep to traverse from f1 to f2 (# of samples).
 % amp =     Vector of amplitude values to enter to outMAT
@@ -21,26 +21,27 @@ function OUTMAT = sweep_time_freq_mat(f1, f2, fres, nsamps, amp, rowsOUT)
 % OUTMAT =  Matrix of time-frequency-intensity data.
 %           Dimensions are [nf x length(amp) x (0:1)]
 
-t = 1:1:nsamps;         % Vector of sample indices
+assert(f1>0 || f2>0, 'ERROR: VARIABLES "f1" & "f2" MUST BE POSITIVE')
 
-% Vector of frequency indices
-if f1 == f2
-    nf = 1;      % Number of frequency points - THIS MIGHT BE WRONG
+% Create Vector of sample indices
+t = 1:1:nsamps;         
+
+% Create Vector of frequency indices
+if f1 == f2 % if f1 is equal to f2, there is only one freq index.
+    nf = 1;                             
     f_indices = ones(1, nf) .* f1;
-            fmax = f1;
             fmin = f1;
-elseif f1 > f2
-            nf = (f1 - f2) / fres;      % Number of frequency points
-            fmax = f1;
+elseif f1 > f2 % case where the sweep decends in freq.
+            nf = (f1 - f2) / fres;     
             fmin = f2;
             f_indices = linspace(1, nf, nf);
-            
-elseif f1 < f2
-            nf = (f2 - f1) / fres;      % Number of frequency points
-            fmax = f2;
+elseif f1 < f2 % case where the sweep ascends in freq.
+            nf = (f2 - f1) / fres;             
             fmin = f1;
-            f_indices = linspace(nf, 1, nf);  % Vector of frequency indices
+            f_indices = linspace(nf, 1, nf);    
 end
+
+assert(rowsOUT >= nf, 'ERROR: VARIABLES "rowsOUT" MUST BE > (range([f1, f2]) / fres)')
 
 % ratio of 't' to 'f'
 r = floor(nsamps / nf);
