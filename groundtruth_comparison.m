@@ -235,12 +235,19 @@ stft_longwin_immse = immse(stft_longwin_resz, all_MAT);
 wavelet_immse = immse(wavelet_resz, all_MAT);
 superlet_immse = immse(superlets_resz, all_MAT);
 
+% Dynamic STFT Names
+stftshort_name = ['STFT, ', num2str(win2), 'pt. Window'];
+stftlong_name = ['STFT, ', num2str(win1), 'pt. Window'];
+
+% Tabluate Results
+varnames = ['RMSE, Frequency Axis', 'RMSE, Time Axis', 'RMSE Total', ...
+    'MSE', 'SSI', 'PSNR'];
+rownames = [stftshort_name, stftlong_name, 'CWT', 'SWT'];
+
 %% Plot Figure 1 - Error
 
+% add table of error values
 
-% Dynamic STFT titles 
-stftlong_name = ['STFT, ', num2str(win1), 'pt. Window'];
-stftshort_name = ['STFT, ', num2str(win2), 'pt. Window'];
 
 % Collate Error data for plotting
 xlabels1 = categorical({'RMSE - Freq', 'RMSE - Time', 'Total RMSE'});
@@ -500,5 +507,5 @@ ax.MinorGridAlpha = 0.15;
 
 t2.TileSpacing = 'compact';
 t2.Padding = 'compact';
-set(gcf, 'Position', [50 100 1200 650])
+set(gcf, 'Position', [50 100 1000 850])
 saveas(gcf,'Final_methods_compare_plot_analytical','svg')
