@@ -3,16 +3,18 @@
 % This script generates a carrier signal (linearly frequency swept sine)
 % and an amplitude modulation signal (linearly frequency swept square)
 % and multiplies them together, creating an amplitude modulated test signal. 
-% It then constructs a matrix representing the "Ground Truth" of the test 
-% signal's power as a function of both time & frequency. This matrix is 
-% constructed analytically, without the use of transforms, through 
-% knowledge of the signal's generating parameters. The matrix, when viewed 
-% as a surface plot serves as a theoretically perfect spectrogram of the 
-% test signal. The script then runs a series of transform-based 
-% time-frequency analysis algorithms on the test signal and compares the 
-% results with ground truth.
+% It then constructs a matrix that can be thought of as a synthetic 
+% spectrogram representing the "Ground Truth" of the test signal's 
+% power as a function of both time & frequency. This spectrogram is 
+% constructed analytically using knowledge of the test signal's TF 
+% charactertistics, rather than by transforming or otherwise analysing 
+% the signal. This ground truth matrix serves as a theoretically perfect 
+% spectrogram of the test signal. Several transform based TF analyses are 
+% then performed and compared against the ground truth. 
 
-% Note: if carrier and 
+% Note: if "carrier_freq1" x "mod_freq1", "carrier_freq2" x "mod_freq2", 
+% or any of the products of their first 4 subharmonics reach a negative
+% value, this script will break.
 
 % Methods compared:
 % Short Time Fourier Transform (short window)
@@ -37,9 +39,9 @@ clc
 
 % Test Signal Parameters:
 carrier_freq1 = 50;         % Sine Sweep start frequency (Hz)
-carrier_freq2 = 35;         % Sine Sweep end frequency (Hz)
+carrier_freq2 = 30;         % Sine Sweep end frequency (Hz)
 mod_freq1 = 2;              % Amplitude Modulation sweep start frequency (Hz)
-mod_freq2 = 7;              % Amplitude Modulation sweep end frequency (Hz)
+mod_freq2 = 6;              % Amplitude Modulation sweep end frequency (Hz)
 duration_sweep = 5;         % Sweep Duration
 silence = 1;                % Silence to pad start and end (seconds)
 fs = 250;                   % Sampling Frequency (Hz)
@@ -53,12 +55,14 @@ fmax = fs/2;                % Highest frequency of interest
 f_res = 0.2;                % Frequency resolution (Hz)
 
 % STFT Window Sizes
-win1 = 200;                 % Spectrogram time window (samples)
+n_fft = 2*((fs/2)/f_res);    % spectrogram FFT length (samples)  
+win1 = n_fft/5;                 % Spectrogram time window (samples)
 win2 = 50;                  % Spectrogram time window (samples)
 
 % CWT Parameters
-tbp = 100;      % Time bandwidth product of Morse wavelet. Scalar, >= 3, <= 120.
-vpo = 20;       % Voices per Octave. Int, >= 1, <= 48.
+tbp = 120;      % Time bandwidth product of Morse wavelet. Scalar, >= 3, <= 120. original value 100
+gamma = 3;      % Symmetry of the wavelet. 3 = symmetric.
+vpo = 48;       % Voices per Octave. Must be in range 10 : 48
 
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
@@ -169,9 +173,6 @@ all_MAT = flip([zeros(n_freqs_total, silence*fs), all_MAT, zeros(n_freqs_total, 
 
 %% Compute Transforms
 
-% spectrogram FFT length (samples)
-n_fft = n_freqs_total*2;        
-
 % Compute STFT
 [stft_longwin, stftlong_freq, stftlong_time] = spectrogram(signal, ...
     win1, win1/2, n_fft, fs, "yaxis");
@@ -183,21 +184,40 @@ stft_longwin = rescale(abs(stft_longwin) .^2);
 stft_shortwin = rescale(abs(stft_shortwin) .^2); 
 
 % Compute CWT
-[wavelet, frq] = cwt(signal, fs, FrequencyLimits=[fmin fmax], ...
-    TimeBandwidth=tbp, VoicesPerOctave=vpo);
-wavelet = rescale(abs(wavelet), 0, 1);
+[cwt, f_cwt] = cwt(signal, fs, FrequencyLimits=[fmin fmax], ...
+    WaveletParameters = [gamma, tbp], VoicesPerOctave = vpo);
+cwt = rescale(abs(cwt), 0, 1);
 tms = (0:numel(signal)-1)/fs;
 
 % Compute superlets
 superlets = nfaslt(signal, fs, [fmin_swt, fmax], n_freqs_total, c1, order, mult);
 superlets = rescale(superlets);
 
+%% Compute frequency resolutions
+
+% STFT Resolutions
+short_STFT_fres = (fmax-fmin) / win2;
+long_STFT_fres = (fmax-fmin) / win1;
+
+% CWT Resolutions
+idx1 = 1;
+idx2 = 2;
+cwtfrqs = flip(f_cwt);
+
+for i = 1:length(cwtfrqs)
+    cwt_fres_vec(i) = cwtfrqs(idx2) - cwtfrqs(idx1);
+    if idx2 < length(cwtfrqs)
+        idx1 = idx1 +1;
+        idx2 = idx2 +1;
+    end
+end
+
 %% Compute Error 
 
 % All matrices must be the same size as ground truth
 stft_shortwin_resz = imresize(stft_shortwin,[n_freqs_total, n_samps_total]);
 stft_longwin_resz = imresize(stft_longwin,[n_freqs_total, n_samps_total]);
-wavelet_resz = imresize(wavelet,[n_freqs_total, n_samps_total]);
+cwt_resz = imresize(cwt,[n_freqs_total, n_samps_total]);
 superlets_resz = imresize(superlets,[n_freqs_total, n_samps_total]);
 
 % Compare similarity to ground truth via Root Mean Square Error:
@@ -209,9 +229,9 @@ stft_longwin_freqerror = mean(rmse(stft_longwin_resz, all_MAT, 1));
 stft_longwin_timeerror = mean(rmse(stft_longwin_resz, all_MAT, 2));
 stft_longwin_totalerror = rmse(stft_longwin_resz, all_MAT, 'all');
 
-wavelet_freqerror = mean(rmse(wavelet_resz, all_MAT, 1));
-wavelet_timeerror = mean(rmse(wavelet_resz, all_MAT, 2));
-wavelet_totalerror = mean(rmse(wavelet_resz, all_MAT, 'all'));
+cwt_freqerror = mean(rmse(cwt_resz, all_MAT, 1));
+cwt_timeerror = mean(rmse(cwt_resz, all_MAT, 2));
+cwt_totalerror = mean(rmse(cwt_resz, all_MAT, 'all'));
 
 superlet_freqerror = mean(rmse(superlets_resz, all_MAT, 1));
 superlet_timeerror = mean(rmse(superlets_resz, all_MAT, 2));
@@ -220,19 +240,19 @@ superlet_totalerror = rmse(superlets_resz, all_MAT, 'all');
 % Compare similarity to ground truth via Structural Similarity Index:
 stft_shortwin_SSIM = ssim(stft_shortwin_resz, all_MAT);
 stft_longwin_SSIM = ssim(stft_longwin_resz, all_MAT);
-wavelet_SSIM = ssim(wavelet_resz, all_MAT);
+cwt_SSIM = ssim(cwt_resz, all_MAT);
 superlet_SSIM = ssim(superlets_resz, all_MAT);
 
 % Compare similarity to ground truth via Peak Signal To Noise Ratio:
 stft_shortwin_PSNR = psnr(stft_shortwin_resz, all_MAT);
 stft_longwin_PSNR = psnr(stft_longwin_resz, all_MAT);
-wavelet_PSNR = psnr(wavelet_resz, all_MAT);
+cwt_PSNR = psnr(cwt_resz, all_MAT);
 superlet_PSNR = psnr(superlets_resz, all_MAT);
 
 % Compare similarity to ground truth via IMMSE:
 stft_shortwin_immse = immse(stft_shortwin_resz, all_MAT);
 stft_longwin_immse = immse(stft_longwin_resz, all_MAT);
-wavelet_immse = immse(wavelet_resz, all_MAT);
+cwt_immse = immse(cwt_resz, all_MAT);
 superlet_immse = immse(superlets_resz, all_MAT);
 
 % Dynamic STFT Names
@@ -244,22 +264,47 @@ varnames = ['RMSE, Frequency Axis', 'RMSE, Time Axis', 'RMSE Total', ...
     'MSE', 'SSI', 'PSNR'];
 rownames = [stftshort_name, stftlong_name, 'CWT', 'SWT'];
 
-%% Plot Figure 1 - Error
+%% Plot Figure 1 - Time Domain Signals
 
-% add table of error values
+% Test signal
+figure(1)
+t1 = tiledlayout(3, 1);
+nexttile
+plot(t_vec_total, signal_sil)
+ylabel('Amplitude (arbitrary)', FontWeight='normal');
+title('Carrier Signal, x_c(t)', FontWeight='bold', fontsize=12)
+xlabel('Time (Seconds)');
+ylim([-1.5 1.5])
+nexttile
+plot(t_vec_total, mod_sil)
+ylabel('Amplitude (arbitrary)', FontWeight='normal');
+title('AM Signal x_m(t)', FontWeight='bold', fontsize=12)
+xlabel('Time (Seconds)');
+ylim([-.05 1.5])
+nexttile
+plot(t_vec_total, signal)
+ylabel('Amplitude (arbitrary)', FontWeight='normal');
+title('Test Signal x(t)', FontWeight='bold', fontsize=12)
+xlabel('Time (Seconds)');
+ylim([-1.5 1.5])
+t1.TileSpacing = 'compact';
+t1.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 500])
+saveas(gcf,'Timedomain_Test_signal','svg')
 
+%% Plot Figure 2 - Error
 
 % Collate Error data for plotting
-xlabels1 = categorical({'RMSE - Freq', 'RMSE - Time', 'Total RMSE'});
-xlabels1 = reordercats(xlabels1,{'RMSE - Freq', 'RMSE - Time', 'Total RMSE'});
-ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, wavelet_freqerror, superlet_freqerror;
-    stft_shortwin_timeerror, stft_longwin_timeerror, wavelet_timeerror, superlet_timeerror;
-    stft_shortwin_totalerror, stft_longwin_totalerror, wavelet_totalerror, superlet_totalerror];
-xlabels2 = categorical({'20pt STFT', '200pt STFT', 'CWT', 'SWT'});
-xlabels2 = reordercats(xlabels2,{'20pt STFT', '200pt STFT', 'CWT', 'SWT'});
-ydata2 = [stft_shortwin_SSIM, stft_longwin_SSIM, wavelet_SSIM, superlet_SSIM];
-ydata3 = [stft_shortwin_PSNR, stft_longwin_PSNR, wavelet_PSNR, superlet_PSNR];
-ydata4 = [stft_shortwin_immse, stft_longwin_immse, wavelet_immse, superlet_immse];
+xlabels1 = categorical({'Freq Axis', 'Time Axis', 'Total RMSE'});
+xlabels1 = reordercats(xlabels1,{'Freq Axis', 'Time Axis', 'Total RMSE'});
+ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, cwt_freqerror, superlet_freqerror;
+    stft_shortwin_timeerror, stft_longwin_timeerror, cwt_timeerror, superlet_timeerror;
+    stft_shortwin_totalerror, stft_longwin_totalerror, cwt_totalerror, superlet_totalerror];
+xlabels2 = categorical({'20pt STFT', '250pt STFT', 'CWT', 'SWT'});
+xlabels2 = reordercats(xlabels2,{'20pt STFT', '250pt STFT', 'CWT', 'SWT'});
+ydata2 = [stft_shortwin_SSIM, stft_longwin_SSIM, cwt_SSIM, superlet_SSIM];
+ydata3 = [stft_shortwin_PSNR, stft_longwin_PSNR, cwt_PSNR, superlet_PSNR];
+ydata4 = [stft_shortwin_immse, stft_longwin_immse, cwt_immse, superlet_immse];
 
 % Plot label rounding
 np1 = 3;
@@ -268,7 +313,7 @@ np3 = 2;
 np4 = 4;
 
 % Plot RMSE
-figure(1)
+figure(2)
 b1 = bar(xlabels1, ydata1);
 xtips1 = b1(1).XEndPoints;
 ytips1 = b1(1).YEndPoints;
@@ -295,13 +340,12 @@ lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
 title('Root Mean Squared Error in Time, Freq & Total', FontWeight='bold', fontsize=12)
-set(gca, 'fontsize', 12)
 grid on
-set(gcf, 'Position', [50 50 500 500])
+set(gcf, 'Position', [50 50 380 380])
 saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
 % Plot Structural Similarity Index
-figure(2)
+figure(3)
 b2 = bar(xlabels2, ydata2);
 xtips1_2 = b2(1).XEndPoints;
 ytips1_2 = b2(1).YEndPoints;
@@ -311,13 +355,12 @@ text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','center',...
 ylabel 'SSI re. Ground Truth'
 title('Structural Similarity Index', FontWeight='bold', fontsize=12)
 ylim([0 1])
-set(gca, 'fontsize', 12)
 grid on
-set(gcf, 'Position', [50 50 350 350])
+set(gcf, 'Position', [50 50 300 300])
 saveas(gcf,'Final_methods_analytical_SSI','svg')
 
 % Plot PSNR
-figure(3)
+figure(4)
 b3 = bar(xlabels2, ydata3);
 xtips1_3 = b3(1).XEndPoints;
 ytips1_3 = b3(1).YEndPoints;
@@ -327,13 +370,12 @@ text(xtips1_3,ytips1_3,labels1_3,'HorizontalAlignment','center',...
 ylabel 'PSNR re. Ground Truth'
 title('Peak Signal to Noise Ratio', FontWeight='bold', fontsize=12)
 ylim([0 30])
-set(gca, 'fontsize', 12)
 grid on
-set(gcf, 'Position', [50 50 350 350])
+set(gcf, 'Position', [50 50 300 300])
 saveas(gcf,'Final_methods_analytical_PSNR','svg')
 
 % Plot MSE
-figure(4)
+figure(5)
 b4 = bar(xlabels2, ydata4);
 xtips1_4 = b4(1).XEndPoints;
 ytips1_4 = b4(1).YEndPoints;
@@ -343,48 +385,25 @@ text(xtips1_4,ytips1_4,labels1_4,'HorizontalAlignment','center',...
 ylabel 'MSE re. Ground Truth'
 title('Mean Squared Error', FontWeight='bold', fontsize=12)
 ylim([0 0.03])
-set(gca, 'fontsize', 12)
 grid on
-set(gcf, 'Position', [50 50 350 350])
-saveas(gcf,'Final_methods_analytical_MSE','svg')
+set(gcf, 'Position', [50 50 300 300])
+saveas(gcf,'Final_methods_ERROR_analytical_MSE','svg')
 
 
-%% Plot Figure 2 - Time-Freq Representations
+%% Plot Figure 3 - Time-Freq Representations
 
 % Common Axis limits
 freqlim = [10 70];
 timelim = [0 (n_samps_total/fs)];
 
 % Init figure
-figure (5)
-t2 = tiledlayout('flow');
-
-% plot time domain signal
-nexttile
-line(t_vec_total, signal, color='Blue', LineWidth=0.5);
-title('Time Domain Signal', FontWeight='bold', fontsize=12)
-axis on
-grid on
-ylabel('Amplitude (Normalized)');
-xlabel('Time (Seconds)');
-ylim([-1.5 1.5])
-xlim(timelim)
-set(gca, 'fontsize', 12)
-ax = gca;
-ax.Layer = 'bottom';
-ax.GridColor = [0 0 0];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [0 0 0];
-ax.MinorGridAlpha = 0.15;
-
+figure (6)
+t1 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
+ylabel(a,'Power (Normalized)', FontWeight='normal');
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -394,7 +413,6 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
-set(gca, 'fontsize', 12)
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -409,7 +427,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftshort_freq, stftshort_time, stft_shortwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
+ylabel(a,'Power (Normalized)', FontWeight='normal');
 title(stftshort_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -419,7 +437,37 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
-set(gca, 'fontsize', 12)
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
+
+t1.TileSpacing = 'compact';
+t1.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 500])
+saveas(gcf,'Groundtruth_vs_shortSTFT','svg')
+
+figure (7)
+t2 = tiledlayout(1,2);
+% Plot matrix "grund truth" time-frequency representation.
+nexttile
+surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+a = colorbar;
+ylabel(a,'Power (Normalized)', FontWeight='normal');
+title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+axis on
+grid on
+xlabel('Frequency (Hz)');
+ylabel('Time (Seconds)');
+zlabel('Power (arbitrary)');
+xlim(freqlim)
+ylim(timelim)
+set(gca, XDir="reverse", View=[90 90])
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -434,7 +482,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftlong_freq, stftlong_time, stft_longwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
+ylabel(a,'Power (Normalized)', FontWeight='normal');
 title(stftlong_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -444,7 +492,37 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
-set(gca, 'fontsize', 12)
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
+
+t2.TileSpacing = 'compact';
+t2.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 500])
+saveas(gcf,'Groundtruth_vs_longSTFT','svg')
+
+figure (8)
+t3 = tiledlayout(1,2);
+% Plot matrix "grund truth" time-frequency representation.
+nexttile
+surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+a = colorbar;
+ylabel(a,'Power (Normalized)', FontWeight='normal');
+title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+axis on
+grid on
+xlabel('Frequency (Hz)');
+ylabel('Time (Seconds)');
+zlabel('Power (arbitrary)');
+xlim(freqlim)
+ylim(timelim)
+set(gca, XDir="reverse", View=[90 90])
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -457,9 +535,9 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot CWT
 nexttile
-surf(frq, tms, wavelet', EdgeColor="none", FaceColor="texturemap")
+surf(f_cwt, tms, cwt', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
+ylabel(a,'Power (Normalized)', FontWeight='normal');
 title('CWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -469,7 +547,38 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
-set(gca, 'fontsize', 12)
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
+
+t3.TileSpacing = 'compact';
+t3.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 500])
+saveas(gcf,'Groundtruth_vs_CWT','svg')
+
+
+figure (9)
+t4 = tiledlayout(1,2);
+% Plot matrix "grund truth" time-frequency representation.
+nexttile
+surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+a = colorbar;
+ylabel(a,'Power (Normalized)', FontWeight='normal');
+title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+axis on
+grid on
+xlabel('Frequency (Hz)');
+ylabel('Time (Seconds)');
+zlabel('Power (arbitrary)');
+xlim(freqlim)
+ylim(timelim)
+set(gca, XDir="reverse", View=[90 90])
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -484,7 +593,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_vec_total, t_vec_total, superlets', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal', fontsize=12);
+ylabel(a,'Power (Normalized)', FontWeight='normal');
 title('SWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
@@ -494,7 +603,6 @@ zlabel('Power (arbitrary)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
-set(gca, 'fontsize', 12)
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -505,7 +613,8 @@ ax.MinorGridLineStyle = ':';
 ax.MinorGridColor = [1 1 1];
 ax.MinorGridAlpha = 0.15;
 
-t2.TileSpacing = 'compact';
-t2.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 850])
-saveas(gcf,'Final_methods_compare_plot_analytical','svg')
+t4.TileSpacing = 'compact';
+t4.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 500])
+saveas(gcf,'Groundtruth_vs_SWT','svg')
+
