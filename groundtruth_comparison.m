@@ -55,9 +55,11 @@ fmax = fs/2;                % Highest frequency of interest
 f_res = 0.2;                % Frequency resolution (Hz)
 
 % STFT Window Sizes
-n_fft = 2*((fs/2)/f_res);    % spectrogram FFT length (samples)  
-win1 = n_fft/5;                 % Spectrogram time window (samples)
-win2 = 50;                  % Spectrogram time window (samples)
+n_fft = 2*((fs/2)/f_res);   % spectrogram FFT length (samples)  
+win1 = n_fft/5;             % Window length for longSTFT (samples)
+win2 = 50;                  % Window length for shortSTFT (samples)
+overlap1 = 75;              % Window overlap % for longSTFT
+overlap2 = 75;              % Window Overlap % for shortSTFT
 
 % CWT Parameters
 tbp = 120;      % Time bandwidth product of Morse wavelet. Scalar, >= 3, <= 120. original value 100
@@ -175,9 +177,9 @@ all_MAT = flip([zeros(n_freqs_total, silence*fs), all_MAT, zeros(n_freqs_total, 
 
 % Compute STFT
 [stft_longwin, stftlong_freq, stftlong_time] = spectrogram(signal, ...
-    win1, win1/2, n_fft, fs, "yaxis");
+    win1, ceil(win1*(overlap1/100)), n_fft, fs, "yaxis");
 [stft_shortwin, stftshort_freq, stftshort_time] = spectrogram(signal, ...
-    win2, win2/2, n_fft, fs, "yaxis");
+    win2, ceil(win2*(overlap2/100)), n_fft, fs, "yaxis");
 
 % Convert magnitude to power 
 stft_longwin = rescale(abs(stft_longwin) .^2);    
@@ -221,20 +223,20 @@ cwt_resz = imresize(cwt,[n_freqs_total, n_samps_total]);
 superlets_resz = imresize(superlets,[n_freqs_total, n_samps_total]);
 
 % Compare similarity to ground truth via Root Mean Square Error:
-stft_shortwin_freqerror = mean(rmse(stft_shortwin_resz, all_MAT, 1));
-stft_shortwin_timeerror = mean(rmse(stft_shortwin_resz, all_MAT, 2));
+stft_shortwin_freqerror = mean(rmse(stft_shortwin_resz, all_MAT, 2));
+stft_shortwin_timeerror = mean(rmse(stft_shortwin_resz, all_MAT, 1));
 stft_shortwin_totalerror = rmse(stft_shortwin_resz, all_MAT, 'all');
 
-stft_longwin_freqerror = mean(rmse(stft_longwin_resz, all_MAT, 1));
-stft_longwin_timeerror = mean(rmse(stft_longwin_resz, all_MAT, 2));
+stft_longwin_freqerror = mean(rmse(stft_longwin_resz, all_MAT, 2));
+stft_longwin_timeerror = mean(rmse(stft_longwin_resz, all_MAT, 1));
 stft_longwin_totalerror = rmse(stft_longwin_resz, all_MAT, 'all');
 
-cwt_freqerror = mean(rmse(cwt_resz, all_MAT, 1));
-cwt_timeerror = mean(rmse(cwt_resz, all_MAT, 2));
+cwt_freqerror = mean(rmse(cwt_resz, all_MAT, 2));
+cwt_timeerror = mean(rmse(cwt_resz, all_MAT, 1));
 cwt_totalerror = mean(rmse(cwt_resz, all_MAT, 'all'));
 
-superlet_freqerror = mean(rmse(superlets_resz, all_MAT, 1));
-superlet_timeerror = mean(rmse(superlets_resz, all_MAT, 2));
+superlet_freqerror = mean(rmse(superlets_resz, all_MAT, 2));
+superlet_timeerror = mean(rmse(superlets_resz, all_MAT, 1));
 superlet_totalerror = rmse(superlets_resz, all_MAT, 'all');
 
 % Compare similarity to ground truth via Structural Similarity Index:
@@ -256,8 +258,8 @@ cwt_immse = immse(cwt_resz, all_MAT);
 superlet_immse = immse(superlets_resz, all_MAT);
 
 % Dynamic STFT Names
-stftshort_name = ['STFT, ', num2str(win2), 'pt. Window'];
-stftlong_name = ['STFT, ', num2str(win1), 'pt. Window'];
+stftshort_name = ['STFT, ', num2str(win2), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
+stftlong_name = ['STFT, ', num2str(win1), 'pt. Window']; % , num2str(overlap1), ' % Overlap'
 
 % Tabluate Results
 varnames = ['RMSE, Frequency Axis', 'RMSE, Time Axis', 'RMSE Total', ...
@@ -300,8 +302,8 @@ xlabels1 = reordercats(xlabels1,{'Freq Axis', 'Time Axis', 'Total RMSE'});
 ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, cwt_freqerror, superlet_freqerror;
     stft_shortwin_timeerror, stft_longwin_timeerror, cwt_timeerror, superlet_timeerror;
     stft_shortwin_totalerror, stft_longwin_totalerror, cwt_totalerror, superlet_totalerror];
-xlabels2 = categorical({'20pt STFT', '250pt STFT', 'CWT', 'SWT'});
-xlabels2 = reordercats(xlabels2,{'20pt STFT', '250pt STFT', 'CWT', 'SWT'});
+xlabels2 = categorical({[num2str(win2), 'pt ', 'STFT'], [num2str(win1), 'pt ', 'STFT'], 'CWT', 'SWT'});
+xlabels2 = reordercats(xlabels2,{[num2str(win2), 'pt ', 'STFT'], [num2str(win1), 'pt ', 'STFT'], 'CWT', 'SWT'});
 ydata2 = [stft_shortwin_SSIM, stft_longwin_SSIM, cwt_SSIM, superlet_SSIM];
 ydata3 = [stft_shortwin_PSNR, stft_longwin_PSNR, cwt_PSNR, superlet_PSNR];
 ydata4 = [stft_shortwin_immse, stft_longwin_immse, cwt_immse, superlet_immse];
@@ -339,13 +341,15 @@ ylim([0 0.2])
 lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
-title('Root Mean Squared Error in Time, Freq & Total', FontWeight='bold', fontsize=12)
+title('Root Mean Squared Error', FontWeight='bold', fontsize=12)
 grid on
 set(gcf, 'Position', [50 50 380 380])
 saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
-% Plot Structural Similarity Index
+% Plot Other Measures
 figure(3)
+t3 = tiledlayout(1,3);
+nexttile
 b2 = bar(xlabels2, ydata2);
 xtips1_2 = b2(1).XEndPoints;
 ytips1_2 = b2(1).YEndPoints;
@@ -356,11 +360,10 @@ ylabel 'SSI re. Ground Truth'
 title('Structural Similarity Index', FontWeight='bold', fontsize=12)
 ylim([0 1])
 grid on
-set(gcf, 'Position', [50 50 300 300])
-saveas(gcf,'Final_methods_analytical_SSI','svg')
+xtickangle(90)
 
 % Plot PSNR
-figure(4)
+nexttile
 b3 = bar(xlabels2, ydata3);
 xtips1_3 = b3(1).XEndPoints;
 ytips1_3 = b3(1).YEndPoints;
@@ -371,11 +374,10 @@ ylabel 'PSNR re. Ground Truth'
 title('Peak Signal to Noise Ratio', FontWeight='bold', fontsize=12)
 ylim([0 30])
 grid on
-set(gcf, 'Position', [50 50 300 300])
-saveas(gcf,'Final_methods_analytical_PSNR','svg')
+xtickangle(90)
 
 % Plot MSE
-figure(5)
+nexttile
 b4 = bar(xlabels2, ydata4);
 xtips1_4 = b4(1).XEndPoints;
 ytips1_4 = b4(1).YEndPoints;
@@ -386,8 +388,12 @@ ylabel 'MSE re. Ground Truth'
 title('Mean Squared Error', FontWeight='bold', fontsize=12)
 ylim([0 0.03])
 grid on
-set(gcf, 'Position', [50 50 300 300])
-saveas(gcf,'Final_methods_ERROR_analytical_MSE','svg')
+xtickangle(90)
+
+t3.TileSpacing = 'compact';
+t3.Padding = 'compact';
+set(gcf, 'Position', [50 100 1000 400])
+saveas(gcf,'Final_methods_ERROR_analytical_SSI_PSNR_MSE','svg')
 
 
 %% Plot Figure 3 - Time-Freq Representations
@@ -403,13 +409,13 @@ t1 = tiledlayout(1,2);
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -427,13 +433,13 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftshort_freq, stftshort_time, stft_shortwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title(stftshort_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -449,7 +455,7 @@ ax.MinorGridAlpha = 0.15;
 
 t1.TileSpacing = 'compact';
 t1.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 500])
+set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_shortSTFT','svg')
 
 figure (7)
@@ -458,13 +464,13 @@ t2 = tiledlayout(1,2);
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -482,13 +488,13 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftlong_freq, stftlong_time, stft_longwin', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title(stftlong_name, FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -504,7 +510,7 @@ ax.MinorGridAlpha = 0.15;
 
 t2.TileSpacing = 'compact';
 t2.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 500])
+set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_longSTFT','svg')
 
 figure (8)
@@ -513,13 +519,13 @@ t3 = tiledlayout(1,2);
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -537,13 +543,13 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_cwt, tms, cwt', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('CWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -559,7 +565,7 @@ ax.MinorGridAlpha = 0.15;
 
 t3.TileSpacing = 'compact';
 t3.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 500])
+set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_CWT','svg')
 
 
@@ -569,13 +575,13 @@ t4 = tiledlayout(1,2);
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -593,13 +599,13 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_vec_total, t_vec_total, superlets', EdgeColor="none", FaceColor="texturemap")
 a = colorbar;
-ylabel(a,'Power (Normalized)', FontWeight='normal');
+ylabel(a,'Power (W, Normalized)', FontWeight='normal');
 title('SWT Scalogram', FontWeight='bold', fontsize=12)
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
-zlabel('Power (arbitrary)');
+zlabel('Power (W, Normalized)');
 xlim(freqlim)
 ylim(timelim)
 set(gca, XDir="reverse", View=[90 90])
@@ -615,6 +621,6 @@ ax.MinorGridAlpha = 0.15;
 
 t4.TileSpacing = 'compact';
 t4.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 500])
+set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_SWT','svg')
 
