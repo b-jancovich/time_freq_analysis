@@ -213,7 +213,7 @@ switch powerscaling
         superlets_plot = 10*log10(superlets_plot / 1);
 
         % Log conversions will result in some -inf values.
-        % Replace -inf with the minimum value in the each matrix.
+        % Replace -inf with the minimum value in each matrix.
         stft_longwin_plot(isinf(stft_longwin_plot)) = min(stft_longwin_plot(~isinf(stft_longwin_plot)), [], 'all');
         stft_shortwin_plot(isinf(stft_shortwin_plot)) = min(stft_shortwin_plot(~isinf(stft_shortwin_plot)), [], 'all');
         cwlet_plot(isinf(cwlet_plot)) = min(cwlet_plot(~isinf(cwlet_plot)), [], 'all');
