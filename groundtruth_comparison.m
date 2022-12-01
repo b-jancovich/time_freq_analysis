@@ -221,8 +221,7 @@ switch powerscaling
     case 'lin'
 end
 
-% % Rescale to range [0 1]
-
+% % Normalize to max=1
 stft_shortwin_plot = stft_shortwin_plot ./ max((stft_shortwin_plot), [], 'all');
 stft_longwin_plot = stft_longwin_plot ./ max((stft_longwin_plot), [], 'all');
 cwlet_plot = cwlet_plot ./ max((cwlet_plot), [], 'all');

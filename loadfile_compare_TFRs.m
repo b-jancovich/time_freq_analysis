@@ -5,8 +5,9 @@ close all
 
 % Signal Analysis Parameters
 fmin = 10;                  % Lowest frquency of interest (Hz)
-f_res = 1;                 % Frequency resolution (Hz)
-threshold = 0.5;            % Noise suppression threshold. Higher values result in more suppression.
+f_res = 1;               % Frequency resolution (Hz)
+threshold = 0.8;            % Noise suppression threshold. Higher values result in more suppression.
+powerscaling = 'log';       % Plot power as 'lin' (W) or 'log' (dBW)  
 
 % STFT Window Sizes
 n_fft = 2048;               % spectrogram FFT length (samples)
@@ -16,9 +17,9 @@ overlap_long = 75;          % Window overlap for longSTFT (%)
 overlap_short = 75;             % Window Overlap for shortSTFT (%)
 
 % CWT Parameters (Morse Wavelet)
-gamma = 3;          % Symmetry of the wavelet. 3 = symmetric.
-vpo = 48;           % Voices per Octave. Int, range [10, 48]
-tbp = 120;          % Time bandwidth product of wavelet. Int, [3,120]
+tbp = 200;              % Time bandwidth product of Morse wavelet.
+gamma = 14;             % Symmetry of the wavelet. 3 = symmetric.
+vpo = 48;               % Voices per Octave. Must be in range 10 : 48
 
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
@@ -44,7 +45,7 @@ switch resample
     case 'Yes'
         while strcmpi(resample, 'Yes')
             % Set Analysis Sampling Frequency (UI Dialog)
-            prompt = ['Downsample audio from ', num2str(original_fs), ' Hz to:'];
+            prompt = ['Enter a new, lower sample rate:'];
             dlgtitle = 'Sample Rate Conversion';
             definput = {num2str(original_fs)};
             dims = [1 50];
@@ -53,8 +54,12 @@ switch resample
             signal_downsamp = easySRC(signal, original_fs, fs, fs/2);
 
             % plot a quick spectrogram to check if sample rate is appropriate
-            [s1, f1, t1] = spectrogram(signal, 250, 250/2, n_fft, original_fs, "yaxis");
-            [s2, f2, t2] = spectrogram(signal_downsamp, 250, 250/2, n_fft, fs, "yaxis");
+            W = 0.2;
+            O = 0.175;
+            [s1, f1, t1] = spectrogram(signal, ceil(W*original_fs), ceil(O*original_fs),...
+                1024, original_fs, "yaxis");
+            [s2, f2, t2] = spectrogram(signal_downsamp,  ceil(W*fs), ceil(O*fs),...
+                1024, fs, "yaxis");
             s1 = 20*log10(abs(s1) .^ 2);
             s2 = 20*log10(abs(s2) .^ 2);
             s1 = s1 ./ max(abs(s1));
@@ -113,7 +118,7 @@ f_vec = linspace(fmin, fmax, n_freqs);
     win_long, ceil(win_long*(overlap_long/100)), n_fft, fs, "yaxis");
 
 % Compute CWT
-[cwlet, f_cwt] = cwt(signal, fs, WaveletParameters = [14, 200]);
+[cwlet, f_cwt] = cwt(signal, fs, WaveletParameters = [gamma, tbp], FrequencyLimits=[fmin fmax]);
 
 % Compute superlets
 swlet = nfaslt(signal, fs, [fmin, fmax], n_freqs, c1, order, mult);
@@ -134,15 +139,22 @@ stft_short = abs(stft_short) .^2;
 cwlet = abs(cwlet) .^2;
 swlet = swlet .^2;
 
-% Convert linear power to Log power (dBW)
-stft_long = 10*log10(stft_long);
-stft_short = 10*log10(stft_short);
-cwlet = 10*log10(cwlet);
-swlet = 10*log10(swlet);
-
-% Lots of -inf values in swlet produced by dB conversion.
-% Replace -inf with the minimum value in the swlet matrix.
-swlet(isinf(swlet)) = min(swlet(~isinf(swlet)), [], 'all');
+% If powerscaling is set to plot power in dB, do log conversions:
+switch powerscaling
+    case 'log'
+        % Convert linear power to Log power (dBW)
+        stft_long = 10*log10(stft_long);
+        stft_short = 10*log10(stft_short);
+        cwlet = 10*log10(cwlet);
+        swlet = 10*log10(swlet);
+        % Log conversions will result in some -inf values.
+        % Replace -inf with the minimum value in each matrix.
+        stft_long(isinf(stft_long)) = min(stft_long(~isinf(stft_long)), [], 'all');
+        stft_short(isinf(stft_short)) = min(stft_short(~isinf(stft_short)), [], 'all');
+        cwlet(isinf(cwlet)) = min(cwlet(~isinf(cwlet)), [], 'all');
+        swlet(isinf(swlet)) = min(swlet(~isinf(swlet)), [], 'all');
+    case 'lin'
+end
 
 %% Noise Floor Suppression
 
@@ -173,6 +185,7 @@ t1 = tiledlayout(2, 2);
 nexttile
 surf(stftshort_freq, stftshort_time, stft_short', EdgeColor = 'none', FaceColor='texturemap')
 title(stftshort_name, FontWeight='bold', fontsize=12)
+c = colorbar;
 axis on
 grid on
 xlabel('Frequency (Hz)');
@@ -194,6 +207,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(stftlong_freq, stftlong_time, stft_long', EdgeColor = 'none', FaceColor='texturemap')
 title(stftlong_name, FontWeight='bold', fontsize=12)
+c = colorbar;
 axis on
 grid on
 xlabel('Frequency (Hz)');
@@ -215,6 +229,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_cwt, t_vec, cwlet', EdgeColor="none", FaceColor="texturemap")
 title('CWT Scalogram', FontWeight='bold', fontsize=12)
+c = colorbar;
 axis on
 grid on
 xlabel('Frequency (Hz)');
@@ -236,6 +251,7 @@ ax.MinorGridAlpha = 0.15;
 nexttile
 surf(f_vec, t_vec, swlet', EdgeColor="none", FaceColor="texturemap")
 title('SWT Scalogram', FontWeight='bold', fontsize=12)
+c = colorbar;
 axis on
 grid on
 xlabel('Frequency (Hz)');
@@ -256,7 +272,7 @@ ax.MinorGridAlpha = 0.15;
 t1.TileSpacing = 'compact';
 t1.Padding = 'compact';
 set(gcf, 'Position', [50 100 1000 600])
-savename = [file, 'TFR_comparison'];
+savename = [file, 'TFR_comparison', '.svg'];
 saveas(gcf, savename, 'svg')
 
 % Time domain
@@ -268,5 +284,5 @@ xlabel('Time (Seconds)');
 ylim([-1.5 1.5])
 
 set(gcf, 'Position', [50 100 1000 350])
-savename = [file, 'Timedomain_signal'];
+savename = [file, 'Timedomain_signal', '.svg'];
 saveas(gcf, savename, 'svg')
