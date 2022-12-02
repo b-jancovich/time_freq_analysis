@@ -28,6 +28,7 @@
 % University of New South Wales, Sydney, Australia
 
 clear
+close
 clc
 
 %% User Variables
@@ -354,7 +355,7 @@ varnames = ['RMSE, Frequency Axis', 'RMSE, Time Axis', 'RMSE Total', ...
 rownames = [stftshort_name, stftlong_name, 'CWT', 'SWT'];
 
 
-%% Plot Figure 1 - Time Domain Signals
+%% Plot Figure 1 - Time Domain Signal
 
 % Test signal
 figure(1)
@@ -362,23 +363,40 @@ t1 = tiledlayout(3, 1);
 nexttile
 plot(t_vec_total, signal_sil)
 ylabel('Amplitude (arbitrary)', FontWeight='normal');
-title('Carrier Signal, x_c(t)', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 xlabel('Time (Seconds)');
+set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 nexttile
 plot(t_vec_total, mod_sil)
 ylabel('Amplitude (arbitrary)', FontWeight='normal');
-title('AM Signal x_m(t)', FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 xlabel('Time (Seconds)');
+set(gca, FontSize=12, FontName='Calibri')
 ylim([-.05 1.5])
 nexttile
 plot(t_vec_total, signal)
 ylabel('Amplitude (arbitrary)', FontWeight='normal');
-title('Test Signal x(t)', FontWeight='bold', fontsize=12)
+ttl = title('c');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 xlabel('Time (Seconds)');
+set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
-t1.TileSpacing = 'compact';
-t1.Padding = 'compact';
+
 set(gcf, 'Position', [50 100 1000 500])
 saveas(gcf,'Timedomain_Test_signal','svg')
 
@@ -415,28 +433,28 @@ xtips1 = b1(1).XEndPoints;
 ytips1 = b1(1).YEndPoints;
 labels1 = string(round(b1(1).YData, np1));
 text(xtips1,ytips1,labels1,'HorizontalAlignment','left',...
-    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
 xtips2 = b1(2).XEndPoints;
 ytips2 = b1(2).YEndPoints;
 labels2 = string(round(b1(2).YData, np1));
 text(xtips2,ytips2,labels2,'HorizontalAlignment','left',...
-    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
 xtips3 = b1(3).XEndPoints;
 ytips3 = b1(3).YEndPoints;
 labels3 = string(round(b1(3).YData, np1));
 text(xtips3,ytips3,labels3,'HorizontalAlignment','left',...
-    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
 xtips4 = b1(4).XEndPoints;
 ytips4 = b1(4).YEndPoints;
 labels4 = string(round(b1(4).YData, np1));
 text(xtips4,ytips4,labels4,'HorizontalAlignment','left',...
-    'VerticalAlignment','middle','Rotation',90,'FontSize',12)
+    'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
 ylim([0 0.14])
 lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
-title('Root Mean Squared Error', FontWeight='bold', fontsize=12)
 grid on
+set(gca, FontSize=12, FontName='Calibri')
 set(gcf, 'Position', [50 50 1000 300])
 saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
@@ -453,9 +471,15 @@ labels1_2 = string(round(b2(1).YData, np2));
 text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'SSI re. Ground Truth'
-title('Structural Similarity Index', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 ylim([0 (round(max(ydata2)*1.3, np2-2))])
 grid on
+set(gca, FontSize=12, FontName='Calibri')
 xtickangle(90)
 
 % Jaccard Similaritty
@@ -467,8 +491,14 @@ labels1_5 = string(round(b5(1).YData, np5));
 text(xtips1_5,ytips1_5,labels1_5,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'JSI re. Ground Truth'
-title('Jaccard Similarity Index', FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 grid on
+set(gca, FontSize=12, FontName='Calibri')
 ylim([0 (round(max(ydata5)*1.3, np2-2))])
 xtickangle(90)
 
@@ -481,9 +511,15 @@ labels1_3 = string(round(b3(1).YData, np3));
 text(xtips1_3,ytips1_3,labels1_3,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'PSNR re. Ground Truth'
-title('Peak Signal to Noise Ratio', FontWeight='bold', fontsize=12)
+ttl = title('c');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 ylim([0 (round(max(ydata3)*1.3, np2-2))])
 grid on
+set(gca, FontSize=12, FontName='Calibri')
 xtickangle(90)
 
 % Plot MSE
@@ -529,47 +565,47 @@ xtickangle(90)
 % xtickangle(90)
 
 t3.TileSpacing = 'compact';
-t3.Padding = 'compact';
+t3.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 300])
 saveas(gcf,'Final_methods_ERROR_analytical_SSI_PSNR_JACSIM','svg')
-
-% Mutual Information - Frequency
-figure(11)
-t4 = tiledlayout(1,2);
-nexttile
-p(1) = plot(f_vec_total, stft_shortwin_mi_freqsim, 'red', LineWidth=1);
-hold on
-p(2) = plot(f_vec_total, stft_longwin_mi_freqsim, 'blue', LineWidth=1);
-p(3) = plot(f_vec_total, cwt_mi_freqsim, 'green', LineWidth=1);
-p(4) = plot(f_vec_total, superlet_mi_freqsim, 'magenta', LineWidth=1);
-lgd1 = legend(stftshort_name, stftlong_name, 'CWT', 'SWT', Location='northwest');
-grid on
-xlabel('Frequency (Hz)')
-ylabel('Mutual Information Estimate')
-title('Mutual Information, Frequency Axis re. Ground Truth', FontWeight='bold', fontsize=12)
-xlim([fmin fmax])
-ylim([0 7])
-
-% Mutual Information - Time
-nexttile
-pp(1) = plot(t_vec_total, stft_longwin_mi_timesim, 'red -.', LineWidth=1);
-hold on
-pp(2) = plot(t_vec_total, stft_shortwin_mi_timesim, 'blue --' , LineWidth=1);
-pp(3) = plot(t_vec_total, cwt_mi_timesim, 'green', LineWidth=1);
-pp(4) = plot(t_vec_total, superlet_mi_timesim, 'magenta :', LineWidth=2);
-lgd2 = legend(stftshort_name, stftlong_name, 'CWT', 'SWT', Location='northwest');
-grid on
-xlim([0 7])
-ylim([0 12])
-
-xlabel('time (s)')
-ylabel('Mutual Information Estimate')
-title('Mutual Information, Time Axis re. Ground Truth', FontWeight='bold', fontsize=12)
-
-t4.TileSpacing = 'compact';
-t4.Padding = 'compact';
-set(gcf, 'Position', [50 100 1000 350])
-saveas(gcf,'Final_methods_MutualInfo_TF','svg')
+% 
+% % Mutual Information - Frequency
+% figure(11)
+% t4 = tiledlayout(1,2);
+% nexttile
+% p(1) = plot(f_vec_total, stft_shortwin_mi_freqsim, 'red', LineWidth=1);
+% hold on
+% p(2) = plot(f_vec_total, stft_longwin_mi_freqsim, 'blue', LineWidth=1);
+% p(3) = plot(f_vec_total, cwt_mi_freqsim, 'green', LineWidth=1);
+% p(4) = plot(f_vec_total, superlet_mi_freqsim, 'magenta', LineWidth=1);
+% lgd1 = legend(stftshort_name, stftlong_name, 'CWT', 'SWT', Location='northwest');
+% grid on
+% xlabel('Frequency (Hz)')
+% ylabel('Mutual Information Estimate')
+% title('Mutual Information, Frequency Axis re. Ground Truth', FontWeight='bold', fontsize=12, FontName='Calibri')
+% xlim([fmin fmax])
+% ylim([0 7])
+% set(gca, FontSize=12, FontName='Calibri')
+% 
+% 
+% % Mutual Information - Time
+% nexttile
+% pp(1) = plot(t_vec_total, stft_longwin_mi_timesim, 'red -.', LineWidth=1);
+% hold on
+% pp(2) = plot(t_vec_total, stft_shortwin_mi_timesim, 'blue --' , LineWidth=1);
+% pp(3) = plot(t_vec_total, cwt_mi_timesim, 'green', LineWidth=1);
+% pp(4) = plot(t_vec_total, superlet_mi_timesim, 'magenta :', LineWidth=2);
+% lgd2 = legend(stftshort_name, stftlong_name, 'CWT', 'SWT', Location='northwest');
+% grid on
+% xlim([0 7])
+% ylim([0 12])
+% xlabel('time (s)')
+% set(gca, FontSize=12, FontName='Calibri')
+% ylabel('Mutual Information Estimate')
+% title('Mutual Information, Time Axis re. Ground Truth', FontWeight='bold', fontsize=12, FontName='Calibri')
+% 
+% set(gcf, 'Position', [50 100 1000 350])
+% saveas(gcf,'Final_methods_MutualInfo_TF','svg')
 
 %% Plot More Figures - Time-Freq Representations
 
@@ -583,14 +619,19 @@ t1 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
-title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -604,14 +645,19 @@ ax.MinorGridAlpha = 0.15;
 % Plot STFT with Short Window
 nexttile
 surf(stftshort_freq, stftshort_time, stft_shortwin_plot', EdgeColor = 'none', FaceColor='texturemap')
-title(stftshort_name, FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -623,7 +669,7 @@ ax.MinorGridColor = [1 1 1];
 ax.MinorGridAlpha = 0.15;
 
 t1.TileSpacing = 'compact';
-t1.Padding = 'compact';
+t1.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_shortSTFT','svg')
 
@@ -632,14 +678,19 @@ t2 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
-title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90],  FontSize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -653,14 +704,19 @@ ax.MinorGridAlpha = 0.15;
 % Plot STFT with Long Window
 nexttile
 surf(stftlong_freq, stftlong_time, stft_longwin_plot', EdgeColor = 'none', FaceColor='texturemap')
-title(stftlong_name, FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -672,7 +728,7 @@ ax.MinorGridColor = [1 1 1];
 ax.MinorGridAlpha = 0.15;
 
 t2.TileSpacing = 'compact';
-t2.Padding = 'compact';
+t2.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_longSTFT','svg')
 
@@ -681,14 +737,19 @@ t3 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
-title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -702,14 +763,19 @@ ax.MinorGridAlpha = 0.15;
 % Plot CWT
 nexttile
 surf(f_cwt, t_vec_total, cwlet_plot', EdgeColor="none", FaceColor="texturemap")
-title('CWT Scalogram', FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -721,7 +787,7 @@ ax.MinorGridColor = [1 1 1];
 ax.MinorGridAlpha = 0.15;
 
 t3.TileSpacing = 'compact';
-t3.Padding = 'compact';
+t3.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_CWT','svg')
 
@@ -731,14 +797,19 @@ t4 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
-title('Analytical Ground Truth', FontWeight='bold', fontsize=12)
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -752,14 +823,19 @@ ax.MinorGridAlpha = 0.15;
 % Plot Superlets
 nexttile
 surf(f_vec_total, t_vec_total, superlets_plot', EdgeColor="none", FaceColor="texturemap")
-title('SWT Scalogram', FontWeight='bold', fontsize=12)
+ttl = title('b');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 axis on
 grid on
 xlabel('Frequency (Hz)');
 ylabel('Time (Seconds)');
 xlim(freqlim)
 ylim(timelim)
-set(gca, XDir="reverse", View=[90 90])
+set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
 ax = gca;
 ax.Layer = 'top';
 ax.GridColor = [1 1 1];
@@ -771,7 +847,10 @@ ax.MinorGridColor = [1 1 1];
 ax.MinorGridAlpha = 0.15;
 
 t4.TileSpacing = 'compact';
-t4.Padding = 'compact';
+t4.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_SWT','svg')
 
+
+t2.TileSpacing = 'compact';
+t2.Padding = 'loose';
