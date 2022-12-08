@@ -37,14 +37,16 @@ clc
 % number of frequency points between fmin and fmax for all methods. This is set
 % using fmin, fmax and fres for other methods.
 
+% NOTE: fc1 and fc2 must NOT be the same frequency.
+
 % Test Signal Parameters:
-carrier_freq1 = 50;         % Sine Sweep start frequency (Hz)
-carrier_freq2 = 30;         % Sine Sweep end frequency (Hz)
-mod_freq1 = 2;              % Amplitude Modulation sweep start frequency (Hz)
-mod_freq2 = 6;              % Amplitude Modulation sweep end frequency (Hz)
-duration_sweep = 5;         % Sweep Duration
-silence = 1;                % Silence to pad start and end (seconds)
-fs = 250;                   % Sampling Frequency (Hz)
+fc1 = 50;               % Sine Sweep start frequency (Hz) Must be ~= fc2
+fc2 = 30;               % Sine Sweep end frequency (Hz) Must be ~= fc1
+fam1 = 2;               % Amplitude Modulation sweep start frequency (Hz)
+fam2 = 5;               % Amplitude Modulation sweep end frequency (Hz)
+duration_sweep = 5;     % Sweep Duration
+duration_silence = 1;   % Silence to pad start and end (seconds)
+fs = 250;               % Sampling Frequency (Hz)
 
 % Ground Truth Parameters:
 sigma = 1;                  % Standard deviation of gaussian filter
@@ -57,10 +59,10 @@ powerscaling = 'lin';       % Plot power as 'lin' (W) or 'log' (dBW)
 
 % STFT Window Sizes
 n_fft = 2*((fs/2)/f_res);   % spectrogram FFT length (samples)
-win1 = n_fft/5;             % Window length for long STFT (samples)
-win2 = 50;                  % Window length for short STFT (samples)
-overlap1 = 75;              % Window overlap % for long STFT
-overlap2 = 75;              % Window Overlap % for short STFT
+win_long = n_fft/5;             % Window length for long STFT (samples)
+win_short = 50;                  % Window length for short STFT (samples)
+overlap_long = 75;              % Window overlap % for long STFT
+overlap_short = 75;              % Window Overlap % for short STFT
 
 % CWT Parameters
 tbp = 120;      % Time bandwidth product of Morse wavelet.
@@ -77,8 +79,8 @@ dcfilt = 10;        % Cutoff of DC filter (Hz)
 
 % Frequency & samp counts
 n_samps_sweep = duration_sweep * fs;
-n_samps_total = n_samps_sweep + (2*(silence*fs));
-n_freqs_sweep = (carrier_freq1-carrier_freq2) / f_res;
+n_samps_total = n_samps_sweep + (2*(duration_silence*fs));
+n_freqs_sweep = (fc1-fc2) / f_res;
 n_freqs_total = (fmax-fmin) / f_res;
 
 % Time vectors
@@ -86,115 +88,122 @@ t_vec_sweep = linspace(0, n_samps_sweep/fs, n_samps_sweep);
 t_vec_total = linspace(0, n_samps_total/fs, n_samps_total);
 
 % Frequency vectors
-f_vec_sweep = linspace(carrier_freq1, carrier_freq2, n_freqs_sweep);
+f_vec_sweep = linspace(fc1, fc2, n_freqs_sweep);
 f_vec_total = linspace(fmin, fmax, n_freqs_total);
 
 %% Generate signals
 
 % Generate Sine Sweep (Carrier Signal)
-signal = chirp(t_vec_sweep, carrier_freq1, t_vec_sweep(end), carrier_freq2, 'linear');
+sig_c = chirp(t_vec_sweep, fc1, t_vec_sweep(end), fc2, 'linear');
 
 % Generate Square Sweep (Amplitude Modulator)
-mod = rescale(sign(chirp(t_vec_sweep, mod_freq1, t_vec_sweep(end), mod_freq2, 'linear')));
+sig_am = rescale(sign(chirp(t_vec_sweep, fam1, t_vec_sweep(end), fam2, 'linear')));
 
 % Pad signal and mod with zeros to insert silence at start & end.
-signal_sil = [zeros(1, silence * fs), signal, zeros(1, silence * fs)];
-mod_sil = [zeros(1, silence * fs), mod, zeros(1, silence * fs)];
+sig_c_sil = [zeros(1, duration_silence * fs), sig_c, zeros(1, duration_silence * fs)];
+sig_am_sil = [zeros(1, duration_silence * fs), sig_am, zeros(1, duration_silence * fs)];
 
 % Amplitude Modulation
-signal = signal_sil .* mod_sil;
-
-%% Ground Truth - Time-Freq Matrix
-
-% Calculate Start and End Frequencies for Upper Sideband Components
-usb1_f1 = carrier_freq1 + mod_freq1;
-usb1_f2 = carrier_freq2 + mod_freq2;
-usb2_f1 = carrier_freq1 + (mod_freq1 * 3);
-usb2_f2 = carrier_freq2 + (mod_freq2 * 3);
-usb3_f1 = carrier_freq1 + (mod_freq1 * 5);
-usb3_f2 = carrier_freq2 + (mod_freq2 * 5);
-
-% Calculate Start and End Frequencies for Lower Sideband Components
-lsb1_f1 = carrier_freq1 - mod_freq1;
-lsb1_f2 = carrier_freq2 - mod_freq2;
-lsb2_f1 = carrier_freq1 - (mod_freq1 * 3);
-lsb2_f2 = carrier_freq2 - (mod_freq2 * 3);
-lsb3_f1 = carrier_freq1 - (mod_freq1 * 5);
-lsb3_f2 = carrier_freq2 - (mod_freq2 * 5);
-
-% Error handling
-sideband_freqs = [usb1_f1, usb1_f2, usb2_f1, usb2_f2, usb3_f1, usb3_f2,...
-    lsb1_f1, lsb1_f2, lsb2_f1, lsb2_f2, lsb3_f1, lsb3_f2];
-assert(all(sideband_freqs >= 0), ['ERROR: THE PRODUCT OF CARRIER AND ' ...
-    'MODULATOR FREQUENCIES YOU HAVE ENTERED HAS RESULTED IN A FREQUENCY ' ...
-    'COMPONENT WITH NEGATIVE FREQUENCY. THIS IS NOT SUPPORTED. PLEASE ' ...
-    'INCREASE LOWEST CARRIER OR MODULATOR FREQUENCY'])
-
-% Build matrices representing carrier and sidebands
-% (f1, f2, f_res, nsamps, amp, rowsOUT)
-amp = ones(1, n_samps_sweep);
-
-carrier_MAT = tfmatgen(carrier_freq1, carrier_freq2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-usb1_MAT = tfmatgen(usb1_f1, usb1_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-usb2_MAT = tfmatgen(usb2_f1, usb2_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-usb3_MAT = tfmatgen(usb3_f1, usb3_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-lsb1_MAT = tfmatgen(lsb1_f1, lsb1_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-lsb2_MAT = tfmatgen(lsb2_f1, lsb2_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-lsb3_MAT = tfmatgen(lsb3_f1, lsb3_f2,...
-    f_res, n_samps_sweep, amp, n_freqs_total);
-
-% Combine matrices for all components
-all_MAT = carrier_MAT + (usb1_MAT .* 0.5) + ...
-    (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) +...
-    (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) +...
-    (lsb3_MAT .* 0.125);
-
-% Due to fmin being constant=0 in tfmatgen.m, and a variable in this
-% script, the ground truth matrix is shifted up in frequency by the value
-% of fmin/f_res+1. Use circshift to shift it back down.
-all_MAT = circshift(flip(all_MAT, 1), -(fmin/f_res)-1, 1);
-
-% That circshift moves some data that is below fmin to the high frequencies.
-% It shouldn't be there. Zero it out.
-all_MAT(end-(fmin/f_res):end, :) = 0;
-
-% Apply amplitude modulation
-modMAT = repmat(mod,[n_freqs_total, 1]);
-all_MAT = all_MAT .* modMAT;
-
-% Add some gaussian smoothing to the ground truth matrix'
-all_MAT = imgaussfilt(all_MAT, sigma);
-
-% Gaussian has changed range of values. Rescale to 0-1.
-all_MAT = rescale(all_MAT);
-
-% Add silence to start and end
-all_MAT = [zeros(n_freqs_total, silence*fs), all_MAT, zeros(n_freqs_total, silence*fs)];
-
-% Convert magnitude to power (W)
-all_MAT = all_MAT.^2;
+signal = sig_c_sil .* sig_am_sil;
 
 %% Compute Transforms
 
 % Compute short windowed STFT
-[stft_shortwin, stftshort_freq, stftshort_time] = spectrogram(signal, ...
-    win2, ceil(win2*(overlap2/100)), n_fft, fs, "yaxis");
+[stft_shortwin, stft_shortwin_f, stft_shortwin_t] = spectrogram(signal, ...
+    win_short, ceil(win_short*(overlap_short/100)), n_fft, fs, "yaxis");
 
 % Compute long windowed STFT
-[stft_longwin, stftlong_freq, stftlong_time] = spectrogram(signal, ...
-    win1, ceil(win1*(overlap1/100)), n_fft, fs, "yaxis");
+[stft_longwin, stft_longwin_f, stft_longwin_t] = spectrogram(signal, ...
+    win_long, ceil(win_long*(overlap_long/100)), n_fft, fs, "yaxis");
 
 % Compute CWT
-[cwlet, f_cwlet] = cwt(signal, fs, VoicesPerOctave=vpo, WaveletParameters = [gamma, tbp], FrequencyLimits=[fmin fmax]);
+[cwlet, cwlet_f] = cwt(signal, fs, VoicesPerOctave=vpo, WaveletParameters = [gamma, tbp], FrequencyLimits=[fmin fmax]);
 
 % Compute SLT
 slt = nfaslt(signal, fs, [dcfilt, fmax], n_freqs_total, c1, order, mult);
+
+% Matrix sizes
+stft_shortwin_size = size(stft_shortwin);
+stft_longwin_size = size(stft_longwin);
+cwlet_size = size(cwlet);
+slt_size = size(slt);
+
+
+
+%%
+% % STFT Resolutions
+% stft_shortwin_fres = (fmax-fmin) / win_short;
+% stft_longwin_fres = (fmax-fmin) / win_long;
+stft_shortwin_tres = (win_short-(ceil(win_short*(overlap_short/100))))*(1/fs);
+stft_longwin_tres = (win_long-(ceil(win_long*(overlap_long/100))))*(1/fs);
+
+[test_s, test_f, test_t] = spectrogram(sig_c, ...
+    win_short, ceil(win_short*(overlap_short/100)), n_fft, fs, "yaxis");
+
+% 
+% % CWT Resolutions
+% idx1 = 1;
+% idx2 = 2;
+% cwletfrqs = flip(cwlet_f);
+% for i = 1:length(cwletfrqs)
+%     cwlet_fres_vec(i) = cwletfrqs(idx2) - cwletfrqs(idx1);
+%     if idx2 < length(cwletfrqs)
+%         idx1 = idx1 +1;
+%         idx2 = idx2 +1;
+%     end
+% end
+
+
+%% Ground Truth - Time-Freq Matrix
+
+% Because each analysis algorithm will return a matrix with a different
+% number of rows (frequencies), and resizing them will corrupt the results,
+% each analysis algorithm must be compared with its own ground truth 
+% matrix, having the same number of rows.
+
+
+
+% Construct groundtruth matrices for each analysis method.
+stft_shortwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
+    n_samps_sweep, stft_shortwin_size(1), sigma, duration_silence, sig_am, fs); % runs ok
+
+stft_longwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
+    n_samps_sweep, stft_longwin_size(1), sigma, duration_silence, sig_am, fs); % runs ok
+
+cwlet_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
+    n_samps_sweep, cwlet_size(1), sigma, duration_silence, sig_am, fs);
+
+slt_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
+    n_samps_sweep, slt_size(1), sigma, duration_silence, sig_am, fs);
+
+% test plot
+figure(1)
+tiledlayout(1,2)
+nexttile
+imagesc(stft_shortwin_groundtruth)
+nexttile
+imagesc(abs(stft_shortwin).^2)
+
+figure(2)
+tiledlayout(1,2)
+nexttile
+imagesc(stft_longwin_groundtruth)
+nexttile
+imagesc(abs(stft_longwin).^2)
+
+figure(3)
+tiledlayout(1,2)
+nexttile
+imagesc(cwlet_groundtruth)
+nexttile
+imagesc(abs(cwlet).^2)
+
+figure(4)
+tiledlayout(1,2)
+nexttile
+imagesc(slt_groundtruth)
+nexttile
+imagesc(slt.^2)
 
 
 %% Unit Convertsions & Normalizations
@@ -243,40 +252,9 @@ stft_longwin = stft_longwin ./ max((stft_longwin), [], 'all');
 cwlet = cwlet ./ max((cwlet), [], 'all');
 slt = slt ./ max((slt), [], 'all');
 
-
-%% Compute time & frequency resolutions
-
-% STFT Resolutions
-short_STFT_fres = (fmax-fmin) / win2;
-long_STFT_fres = (fmax-fmin) / win1;
-short_STFT_tres = (win2-(ceil(win2*(overlap2/100))))*(1/fs);
-long_STFT_tres = (win1-(ceil(win1*(overlap1/100))))*(1/fs);
-
-% CWT Resolutions
-idx1 = 1;
-idx2 = 2;
-cwletfrqs = flip(f_cwlet);
-for i = 1:length(cwletfrqs)
-    cwlet_fres_vec(i) = cwletfrqs(idx2) - cwletfrqs(idx1);
-    if idx2 < length(cwletfrqs)
-        idx1 = idx1 +1;
-        idx2 = idx2 +1;
-    end
-end
-
 %% Compute Error
 
-% All matrices must be the same size as groundtruth.
-% Scale all to (n_freqs_total x n_samps_total).
-stft_shortwin_resz = imresize(stft_shortwin, [n_freqs_total, n_samps_total]);
-stft_longwin_resz = imresize(stft_longwin, [n_freqs_total, n_samps_total]);
-cwlet_resz= imresize(cwlet, [n_freqs_total, n_samps_total]);
-slt_resz = imresize(slt, [n_freqs_total, n_samps_total]);
-% The block above is incorrect. imresize() warps the image.
-% Have experimented with resize methods, but because cwt has inherently
-% non-linear frequency scaling, no linear resize method will work. Need to
-% generate a ground truth for each method. Branching in Git for this
-% change.
+
 
 % Compare similarity to ground truth via Root Mean Square Error:
 stft_shortwin_freqerror = mean(rmse(stft_shortwin_resz, all_MAT, 1));
@@ -302,8 +280,8 @@ cwlet_SSIM = ssim(cwlet_resz, all_MAT);
 slt_SSIM = ssim(slt_resz, all_MAT);
 
 % Dynamic STFT Names
-stftshort_name = ['STFT, ', num2str(win2), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
-stftlong_name = ['STFT, ', num2str(win1), 'pt. Window']; % , num2str(overlap1), ' % Overlap'
+stftshort_name = ['STFT, ', num2str(win_short), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
+stftlong_name = ['STFT, ', num2str(win_long), 'pt. Window']; % , num2str(overlap1), ' % Overlap'
 
 
 
@@ -313,7 +291,7 @@ stftlong_name = ['STFT, ', num2str(win1), 'pt. Window']; % , num2str(overlap1), 
 figure(1)
 t1 = tiledlayout(3, 1);
 nexttile
-plot(t_vec_total, signal_sil)
+plot(t_vec_total, sig_c_sil)
 ylabel('Amplitude (arbitrary)', FontWeight='normal');
 ttl = title('a');
 tt1.FontWeight = 'bold';
@@ -325,7 +303,7 @@ xlabel('Time (Seconds)');
 set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 nexttile
-plot(t_vec_total, mod_sil)
+plot(t_vec_total, sig_am_sil)
 ylabel('Amplitude (arbitrary)', FontWeight='normal');
 ttl = title('b');
 tt1.FontWeight = 'bold';
@@ -360,8 +338,8 @@ xlabels1 = reordercats(xlabels1,{'Freq Axis', 'Time Axis', 'Total RMSE'});
 ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, cwlet_freqerror, slt_freqerror;
     stft_shortwin_timeerror, stft_longwin_timeerror, cwlet_timeerror, slt_timeerror;
     stft_shortwin_totalerror, stft_longwin_totalerror, cwlet_totalerror, slt_totalerror];
-xlabels2 = categorical({[num2str(win2), 'pt ', 'STFT'], [num2str(win1), 'pt ', 'STFT'], 'CWT', 'SWT'});
-xlabels2 = reordercats(xlabels2,{[num2str(win2), 'pt ', 'STFT'], [num2str(win1), 'pt ', 'STFT'], 'CWT', 'SWT'});
+xlabels2 = categorical({[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SWT'});
+xlabels2 = reordercats(xlabels2,{[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SWT'});
 ydata2 = [stft_shortwin_SSIM, stft_longwin_SSIM, cwlet_SSIM, slt_SSIM];
 
 % Plot label rounding
@@ -466,7 +444,7 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Short Window
 nexttile
-surf(stftshort_freq, stftshort_time, stft_shortwin_plot', EdgeColor = 'none', FaceColor='texturemap')
+surf(stft_shortwin_f, stft_shortwin_t, stft_shortwin_plot', EdgeColor = 'none', FaceColor='texturemap')
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -525,7 +503,7 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Long Window
 nexttile
-surf(stftlong_freq, stftlong_time, stft_longwin_plot', EdgeColor = 'none', FaceColor='texturemap')
+surf(stft_longwin_f, stft_longwin_t, stft_longwin_plot', EdgeColor = 'none', FaceColor='texturemap')
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -584,7 +562,7 @@ ax.MinorGridAlpha = 0.15;
 
 % Plot CWT
 nexttile
-surf(f_cwlet, t_vec_total, cwlet_plot', EdgeColor="none", FaceColor="texturemap")
+surf(cwlet_f, t_vec_total, cwlet_plot', EdgeColor="none", FaceColor="texturemap")
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
