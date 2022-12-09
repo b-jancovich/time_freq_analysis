@@ -40,16 +40,17 @@ clc
 % NOTE: fc1 and fc2 must NOT be the same frequency.
 
 % Test Signal Parameters:
-fc1 = 50;               % Sine Sweep start frequency (Hz) Must be ~= fc2
-fc2 = 30;               % Sine Sweep end frequency (Hz) Must be ~= fc1
-fam1 = 2;               % Amplitude Modulation sweep start frequency (Hz)
-fam2 = 5;               % Amplitude Modulation sweep end frequency (Hz)
-duration_sweep = 5;     % Sweep Duration
-duration_silence = 1;   % Silence to pad start and end (seconds)
-fs = 250;               % Sampling Frequency (Hz)
+fc1 = 50;                   % Sine Sweep start frequency (Hz) Must be ~= fc2
+fc2 = 30;                   % Sine Sweep end frequency (Hz) Must be ~= fc1
+fam1 = 2;                   % Amplitude Modulation sweep start frequency (Hz)
+fam2 = 6;                   % Amplitude Modulation sweep end frequency (Hz)
+duration_sweep = 5;         % Sweep Duration
+duration_silence = 1;       % Silence to pad start and end (seconds)
+fs = 250;                   % Sampling Frequency (Hz)
+phi_am = 127;               % Initial phase of AM waveform (degrees)
 
 % Ground Truth Parameters:
-sigma = 1;                  % Standard deviation of gaussian filter
+sigma = 0.3;                % Standard deviation of gaussian filter
 
 % Signal Analysis Parameters
 fmin = 10;                  % Lowest frquency of interest
@@ -59,10 +60,10 @@ powerscaling = 'lin';       % Plot power as 'lin' (W) or 'log' (dBW)
 
 % STFT Window Sizes
 n_fft = 2*((fs/2)/f_res);   % spectrogram FFT length (samples)
-win_long = n_fft/5;             % Window length for long STFT (samples)
-win_short = 50;                  % Window length for short STFT (samples)
-overlap_long = 75;              % Window overlap % for long STFT
-overlap_short = 75;              % Window Overlap % for short STFT
+win_long = n_fft/5;         % Window length for long STFT (samples)
+win_short = 50;             % Window length for short STFT (samples)
+overlap_long = 75;          % Window overlap % for long STFT
+overlap_short = 75;         % Window Overlap % for short STFT
 
 % CWT Parameters
 tbp = 120;      % Time bandwidth product of Morse wavelet.
@@ -84,7 +85,8 @@ n_freqs_sweep = (fc1-fc2) / f_res;
 n_freqs_total = (fmax-fmin) / f_res;
 
 % Time vectors
-t_vec_sweep = linspace(0, n_samps_sweep/fs, n_samps_sweep);
+% t_vec_sweep = linspace(0, n_samps_sweep/fs, n_samps_sweep);
+t_vec_sweep = linspace(duration_silence, duration_sweep, n_samps_sweep);
 t_vec_total = linspace(0, n_samps_total/fs, n_samps_total);
 
 % Frequency vectors
@@ -97,7 +99,7 @@ f_vec_total = linspace(fmin, fmax, n_freqs_total);
 sig_c = chirp(t_vec_sweep, fc1, t_vec_sweep(end), fc2, 'linear');
 
 % Generate Square Sweep (Amplitude Modulator)
-sig_am = rescale(sign(chirp(t_vec_sweep, fam1, t_vec_sweep(end), fam2, 'linear')));
+sig_am = rescale(sign(chirp(t_vec_sweep, fam1, t_vec_sweep(end), fam2, 'linear', phi_am)));
 
 % Pad signal and mod with zeros to insert silence at start & end.
 sig_c_sil = [zeros(1, duration_silence * fs), sig_c, zeros(1, duration_silence * fs)];
@@ -127,6 +129,52 @@ stft_shortwin_size = size(stft_shortwin);
 stft_longwin_size = size(stft_longwin);
 cwlet_size = size(cwlet);
 slt_size = size(slt);
+
+stft_shortwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    stft_shortwin_f, stft_shortwin_t, sigma, duration_sweep,...
+    duration_silence, phi_am);
+
+% Test Plotting
+% RESUME WORK HERE ON MONDAY
+
+figure(1)
+tiledlayout(2,1)
+nexttile
+surf(stft_shortwin_f, stft_shortwin_t, stft_shortwin_groundtruth', EdgeColor = 'none', FaceColor='texturemap')
+axis on
+grid on
+xlabel('Frequency (Hz)');
+ylabel('Time (Seconds)');
+xlim([10 70])
+ylim([0 7])
+set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
+nexttile
+surf(stft_shortwin_f, stft_shortwin_t, abs(stft_shortwin).^2', EdgeColor = 'none', FaceColor='texturemap')
+axis on
+grid on
+xlabel('Frequency (Hz)');
+ylabel('Time (Seconds)');
+xlim([10 70])
+ylim([0 7])
+set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
+ax = gca;
+ax.Layer = 'top';
+ax.GridColor = [1 1 1];
+ax.GridAlpha = 0.15;
+ax.XMinorGrid = 'on';
+ax.YMinorGrid = 'on';
+ax.MinorGridLineStyle = ':';
+ax.MinorGridColor = [1 1 1];
+ax.MinorGridAlpha = 0.15;
 
 
 
