@@ -24,7 +24,7 @@ function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t
 %                       contain the sweep
 % n_silence_samps   = The number of samples (columns) of matOUT that
 %                       contain the silence before the sweep
-% 
+%
 % Ben Jancovich, 2022
 % Centre for Marine Science and Innovation
 % School of Biological, Earth and Environmental Sciences
@@ -37,8 +37,8 @@ rows_out = length(f_vec);
 cols_out = length(t_vec);
 
 % Convert freq and time vectors from numbers to strings for table indexing
-f_labels = arrayfun(@num2str, f_vec, 'UniformOutput', 0);
-t_labels = arrayfun(@num2str, t_vec, 'UniformOutput', 0);
+f_labels = arrayfun(@(z) num2str(z, 15), f_vec, 'UniformOutput', 0);
+t_labels = arrayfun(@(z) num2str(z, 15), t_vec, 'UniformOutput', 0);
 
 % Create empty matrix with the desired dimensions
 emptymat = zeros(rows_out, cols_out);
@@ -73,7 +73,7 @@ t_indices_sweep = t_vec(sweep_tidx_start:sweep_tidx_end);
 %% Construct sweep frequency index
 
 % Compressed frequency resolution means sweep may not start at precisely 
-% the perscribed frequency. Find freq index closest to prescribed start
+% the prescribed frequency. Find freq index closest to prescribed start
 % frequency. 
 [~,sweep_fidx_start] = min(abs(f_vec - fc1));
 sweep_fstart = f_vec(sweep_fidx_start);
@@ -89,7 +89,9 @@ f_indices_sweep_ideal = linspace(sweep_fstart, sweep_fend, length(t_indices_swee
 
 % Compressed frequency resolution means sweep f_indices may not align
 % precisely with those of f_vec. Use closest freq indices from f_vec.
-[~,sweep_fidx_all] = min(abs(f_vec - f_indices_sweep_ideal));
+for i = 1:length(f_indices_sweep_ideal)
+    [~,sweep_fidx_all(i)] = min(abs(f_vec - f_indices_sweep_ideal(i)));
+end
 f_indices_sweep = f_vec(sweep_fidx_all);
 
 % % Construct Vector of sweep frequency indices
@@ -102,8 +104,8 @@ f_indices_sweep = f_vec(sweep_fidx_all);
 %% Write sweep data into table
 
 % Convert sweep indices from numbers to strings for table indexing
-f_sweep_labels = arrayfun(@num2str, f_indices_sweep, 'UniformOutput', 0);
-t_sweep_labels = arrayfun(@num2str, t_indices_sweep, 'UniformOutput', 0);
+f_sweep_labels = arrayfun(@(z) num2str(z, 15), f_indices_sweep, 'UniformOutput', 0);
+t_sweep_labels = arrayfun(@(z) num2str(z, 15), t_indices_sweep, 'UniformOutput', 0);
 
 % Write ones to the cells of the table at freq and time indices in
 % f_indices_sweep and t_indices_sweep
@@ -114,10 +116,7 @@ for i=1:length(f_indices_sweep)
 end
 
 % Convert table back to a regular matrix
-mat = table2array(table);
-
-% Convert magnitude to power (W)
-matOUT = mat .^2;
+matOUT = table2array(table);
 
 % Number of samples in sweep
 n_sweep_samps = length(t_indices_sweep);

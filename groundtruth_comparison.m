@@ -47,8 +47,10 @@ fam2 = 6;                   % Amplitude Modulation sweep end frequency (Hz)
 duration_sweep = 5;         % Sweep Duration
 duration_silence = 1;       % Silence to pad start and end (seconds)
 fs = 250;                   % Sampling Frequency (Hz)
-phi_am = 127;               % Initial phase of AM waveform (degrees)
-
+phi_carrier = 0;            % Initial phase of carrier waveform (degrees)
+phi_am = -90;               % Initial phase of AM waveform (degrees)
+                            % chirp() returns cosine, so -90 ensures sweep
+                            % begins at max
 % Ground Truth Parameters:
 sigma = 0.3;                % Standard deviation of gaussian filter
 
@@ -86,7 +88,7 @@ n_freqs_total = (fmax-fmin) / f_res;
 
 % Time vectors
 % t_vec_sweep = linspace(0, n_samps_sweep/fs, n_samps_sweep);
-t_vec_sweep = linspace(duration_silence, duration_sweep, n_samps_sweep);
+t_vec_sweep = linspace(0, duration_sweep, n_samps_sweep);
 t_vec_total = linspace(0, n_samps_total/fs, n_samps_total);
 
 % Frequency vectors
@@ -96,7 +98,7 @@ f_vec_total = linspace(fmin, fmax, n_freqs_total);
 %% Generate signals
 
 % Generate Sine Sweep (Carrier Signal)
-sig_c = chirp(t_vec_sweep, fc1, t_vec_sweep(end), fc2, 'linear');
+sig_c = chirp(t_vec_sweep, fc1, t_vec_sweep(end), fc2, 'linear', phi_carrier); %, phi_carrier
 
 % Generate Square Sweep (Amplitude Modulator)
 sig_am = rescale(sign(chirp(t_vec_sweep, fam1, t_vec_sweep(end), fam2, 'linear', phi_am)));
@@ -124,139 +126,9 @@ signal = sig_c_sil .* sig_am_sil;
 % Compute SLT
 slt = nfaslt(signal, fs, [dcfilt, fmax], n_freqs_total, c1, order, mult);
 
-% Matrix sizes
-stft_shortwin_size = size(stft_shortwin);
-stft_longwin_size = size(stft_longwin);
-cwlet_size = size(cwlet);
-slt_size = size(slt);
+%% Potted Data - Unit Convertsions & Normalizations
 
-stft_shortwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, ...
-    stft_shortwin_f, stft_shortwin_t, sigma, duration_sweep,...
-    duration_silence, phi_am);
-
-% Test Plotting
-% RESUME WORK HERE ON MONDAY
-
-figure(1)
-tiledlayout(2,1)
-nexttile
-surf(stft_shortwin_f, stft_shortwin_t, stft_shortwin_groundtruth', EdgeColor = 'none', FaceColor='texturemap')
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim([10 70])
-ylim([0 7])
-set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
-nexttile
-surf(stft_shortwin_f, stft_shortwin_t, abs(stft_shortwin).^2', EdgeColor = 'none', FaceColor='texturemap')
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim([10 70])
-ylim([0 7])
-set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
-
-
-
-%%
-% % STFT Resolutions
-% stft_shortwin_fres = (fmax-fmin) / win_short;
-% stft_longwin_fres = (fmax-fmin) / win_long;
-stft_shortwin_tres = (win_short-(ceil(win_short*(overlap_short/100))))*(1/fs);
-stft_longwin_tres = (win_long-(ceil(win_long*(overlap_long/100))))*(1/fs);
-
-[test_s, test_f, test_t] = spectrogram(sig_c, ...
-    win_short, ceil(win_short*(overlap_short/100)), n_fft, fs, "yaxis");
-
-% 
-% % CWT Resolutions
-% idx1 = 1;
-% idx2 = 2;
-% cwletfrqs = flip(cwlet_f);
-% for i = 1:length(cwletfrqs)
-%     cwlet_fres_vec(i) = cwletfrqs(idx2) - cwletfrqs(idx1);
-%     if idx2 < length(cwletfrqs)
-%         idx1 = idx1 +1;
-%         idx2 = idx2 +1;
-%     end
-% end
-
-
-%% Ground Truth - Time-Freq Matrix
-
-% Because each analysis algorithm will return a matrix with a different
-% number of rows (frequencies), and resizing them will corrupt the results,
-% each analysis algorithm must be compared with its own ground truth 
-% matrix, having the same number of rows.
-
-
-
-% Construct groundtruth matrices for each analysis method.
-stft_shortwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
-    n_samps_sweep, stft_shortwin_size(1), sigma, duration_silence, sig_am, fs); % runs ok
-
-stft_longwin_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
-    n_samps_sweep, stft_longwin_size(1), sigma, duration_silence, sig_am, fs); % runs ok
-
-cwlet_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
-    n_samps_sweep, cwlet_size(1), sigma, duration_silence, sig_am, fs);
-
-slt_groundtruth = buildgroundtruth(fc1, fc2, fam1, fam2, fmin, f_res,...
-    n_samps_sweep, slt_size(1), sigma, duration_silence, sig_am, fs);
-
-% test plot
-figure(1)
-tiledlayout(1,2)
-nexttile
-imagesc(stft_shortwin_groundtruth)
-nexttile
-imagesc(abs(stft_shortwin).^2)
-
-figure(2)
-tiledlayout(1,2)
-nexttile
-imagesc(stft_longwin_groundtruth)
-nexttile
-imagesc(abs(stft_longwin).^2)
-
-figure(3)
-tiledlayout(1,2)
-nexttile
-imagesc(cwlet_groundtruth)
-nexttile
-imagesc(abs(cwlet).^2)
-
-figure(4)
-tiledlayout(1,2)
-nexttile
-imagesc(slt_groundtruth)
-nexttile
-imagesc(slt.^2)
-
-
-%% Unit Convertsions & Normalizations
-
-% Data to be plotted
+% Data to be plotted:
 % Convert algorithm outputs to power (W)
 stft_longwin_plot = (abs(stft_longwin).^2);     % spectrogram() returns complex data.
 stft_shortwin_plot = (abs(stft_shortwin).^2);   % spectrogram() returns complex data.
@@ -287,60 +159,152 @@ stft_longwin_plot = stft_longwin_plot ./ max((stft_longwin_plot), [], 'all');
 cwlet_plot = cwlet_plot ./ max((cwlet_plot), [], 'all');
 slt_plot = slt_plot ./ max((slt_plot), [], 'all');
 
-% Data for use in measures of error
+
+%% Construct Ground Truth Matrices
+% Because each analysis algorithm will return a matrix with a different
+% number of rows (frequencies) and columns (times), and free-scale resizing them 
+% will corrupt the results, each analysis algorithm must be compared with 
+% its own groundtruth matrix having the same aspect ratio.
+
+% Generate groundtruth TFR that is used for plotting only
+[groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    f_vec_total, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, 0.5);
+
+% Generate stft_shortwin groundtruth & Corresponding time and freq vectors:
+[stft_shortwin_GT_t, stft_shortwin_GT_f, stft_shortwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    stft_shortwin_f, stft_shortwin_t, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+% Generate stft_longwin groundtruth & Corresponding time and freq vectors:
+[stft_longwin_GT_t, stft_longwin_GT_f, stft_longwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    stft_longwin_f, stft_longwin_t, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+% Generate CWT groundtruth & Corresponding time and freq vectors:
+[cwlet_GT_t, cwlet_GT_f, cwlet_GT] = buildgroundtruth(fc2, fc1, fam1, fam2, ...
+    cwlet_f, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+% % Generate SLT groundtruth & Corresponding time and freq vectors:
+[slt_GT_t, slt_GT_f, slt_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    f_vec_total, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+%% TFR Scaling
+
+% Resample the stft_shortwin TRF to match its groundtruth size
+stft_shortwin_resz = imresize(stft_shortwin, size(stft_shortwin_GT), Method="bilinear");
+
+% % Resample the stft_shortwin TRF to match its groundtruth size
+stft_longwin_resz = imresize(stft_longwin, size(stft_longwin_GT), Method="bilinear");
+% 
+% % Resample the CWT TRF to match its groundtruth size
+cwlet_resz = imresize(cwlet, size(cwlet_GT), Method="bilinear");
+% 
+% % Resample the SLT TRF to match its groundtruth size
+slt_resz = imresize(slt, size(slt_GT), Method="bilinear");
+
+%% Error Calculation - Unit Convertsions & Normalizations
 % Convert algorithm outputs to power (W)
-stft_longwin = abs(stft_longwin).^2;    % spectrogram returns complex data.
-stft_shortwin = abs(stft_shortwin).^2;  % spectrogram returns complex data.
-cwlet = abs(cwlet) .^2;                 % cwt returns complex data.
-slt = slt .^2;              % nfaslt returns magnitude.
+stft_shortwin_resz = abs(stft_shortwin_resz).^2;  % spectrogram returns complex data.
+stft_longwin_resz = abs(stft_longwin_resz).^2;    % spectrogram returns complex data.
+cwlet_resz = abs(cwlet_resz) .^2;                 % cwt returns complex data.
+slt_resz = slt_resz .^2;                          % nfaslt returns magnitude.
 
 % Normalize to max = 1
-stft_shortwin = stft_shortwin ./ max((stft_shortwin), [], 'all');
-stft_longwin = stft_longwin ./ max((stft_longwin), [], 'all');
-cwlet = cwlet ./ max((cwlet), [], 'all');
-slt = slt ./ max((slt), [], 'all');
+stft_shortwin_resz = stft_shortwin_resz ./ max((stft_shortwin_resz), [], 'all');
+stft_longwin_resz = stft_longwin_resz ./ max((stft_longwin_resz), [], 'all');
+cwlet_resz = cwlet_resz ./ max((cwlet_resz), [], 'all');
+slt_resz = slt_resz ./ max((slt_resz), [], 'all');
 
+% Test plot - check that the images being compared in stat tests are
+% correct.
+figure(1)
+tiledlayout(4,2)
+nexttile
+imagesc(abs(stft_shortwin_resz))
+title('stft short')
+nexttile
+imagesc(stft_shortwin_GT)
+title('stft short GT')
+nexttile
+imagesc(abs(stft_longwin_resz))
+title('stft long')
+nexttile
+imagesc(stft_longwin_GT)
+title('stft long GT')
+nexttile
+imagesc(abs(cwlet_resz))
+title('cwt')
+nexttile
+imagesc(cwlet_GT)
+title('cwt GT')
+nexttile
+imagesc(slt_resz)
+title('slt')
+nexttile
+imagesc(slt_GT)
+title('slt GT')
+sgtitle('Resized TFRs & Corresponding Groundtruths for Error Analysis',...
+    FontWeight='bold')
+
+
+%% Estimate resolutions
+% % STFT Resolutions
+% stft_shortwin_fres = (fmax-fmin) / win_short;
+% stft_longwin_fres = (fmax-fmin) / win_long;
+stft_shortwin_tres = (win_short-(ceil(win_short*(overlap_short/100))))*(1/fs);
+stft_longwin_tres = (win_long-(ceil(win_long*(overlap_long/100))))*(1/fs);
+
+% CWT Resolutions
+idx1 = 1;
+idx2 = 2;
+cwletfrqs = flip(cwlet_f);
+for i = 1:length(cwletfrqs)
+    cwlet_fres_vec(i) = cwletfrqs(idx2) - cwletfrqs(idx1);
+    if idx2 < length(cwletfrqs)
+        idx1 = idx1 +1;
+        idx2 = idx2 +1;
+    end
+end
 %% Compute Error
 
-
-
 % Compare similarity to ground truth via Root Mean Square Error:
-stft_shortwin_freqerror = mean(rmse(stft_shortwin_resz, all_MAT, 1));
-stft_shortwin_timeerror = mean(rmse(stft_shortwin_resz, all_MAT, 2));
-stft_shortwin_totalerror = rmse(stft_shortwin_resz, all_MAT, 'all');
+stft_shortwin_freqerror = mean(rmse(stft_shortwin_resz, stft_shortwin_GT, 1));
+stft_shortwin_timeerror = mean(rmse(stft_shortwin_resz, stft_shortwin_GT, 2));
+stft_shortwin_totalerror = rmse(stft_shortwin_resz, stft_shortwin_GT, 'all');
 
-stft_longwin_freqerror = mean(rmse(stft_longwin_resz, all_MAT, 2));
-stft_longwin_timeerror = mean(rmse(stft_longwin_resz, all_MAT, 1));
-stft_longwin_totalerror = rmse(stft_longwin_resz, all_MAT, 'all');
+stft_longwin_freqerror = mean(rmse(stft_longwin_resz, stft_longwin_GT, 2));
+stft_longwin_timeerror = mean(rmse(stft_longwin_resz, stft_longwin_GT, 1));
+stft_longwin_totalerror = rmse(stft_longwin_resz, stft_longwin_GT, 'all');
 
-cwlet_freqerror = mean(rmse(cwlet_resz, all_MAT, 2));
-cwlet_timeerror = mean(rmse(cwlet_resz, all_MAT, 1));
-cwlet_totalerror = mean(rmse(cwlet_resz, all_MAT, 'all'));
+cwlet_freqerror = mean(rmse(cwlet_resz, cwlet_GT, 2));
+cwlet_timeerror = mean(rmse(cwlet_resz, cwlet_GT, 1));
+cwlet_totalerror = mean(rmse(cwlet_resz, cwlet_GT, 'all'));
 
-slt_freqerror = mean(rmse(slt_resz, all_MAT, 2));
-slt_timeerror = mean(rmse(slt_resz, all_MAT, 1));
-slt_totalerror = rmse(slt_resz, all_MAT, 'all');
+slt_freqerror = mean(rmse(slt_resz, slt_GT, 2));
+slt_timeerror = mean(rmse(slt_resz, slt_GT, 1));
+slt_totalerror = rmse(slt_resz, slt_GT, 'all');
 
 % Compare similarity to ground truth via Structural Similarity Index:
-stft_shortwin_SSIM = ssim(stft_shortwin_resz, all_MAT);
-stft_longwin_SSIM = ssim(stft_longwin_resz, all_MAT);
-cwlet_SSIM = ssim(cwlet_resz, all_MAT);
-slt_SSIM = ssim(slt_resz, all_MAT);
+stft_shortwin_SSIM = ssim(stft_shortwin_resz, stft_shortwin_GT);
+stft_longwin_SSIM = ssim(stft_longwin_resz, stft_longwin_GT);
+cwlet_SSIM = ssim(cwlet_resz, cwlet_GT);
+slt_SSIM = ssim(slt_resz, slt_GT);
 
 % Dynamic STFT Names
 stftshort_name = ['STFT, ', num2str(win_short), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
 stftlong_name = ['STFT, ', num2str(win_long), 'pt. Window']; % , num2str(overlap1), ' % Overlap'
 
-
-
 %% Plot Figure 1 - Time Domain Signal
 
 % Test signal
-figure(1)
+figure(2)
 t1 = tiledlayout(3, 1);
 nexttile
 plot(t_vec_total, sig_c_sil)
-ylabel('Amplitude (arbitrary)', FontWeight='normal');
+ylabel('Amplitude (arb.)', FontWeight='normal');
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -352,7 +316,7 @@ set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 nexttile
 plot(t_vec_total, sig_am_sil)
-ylabel('Amplitude (arbitrary)', FontWeight='normal');
+ylabel('Amplitude (arb.)', FontWeight='normal');
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -361,10 +325,10 @@ ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
 ttl.HorizontalAlignment = 'left';  
 xlabel('Time (Seconds)');
 set(gca, FontSize=12, FontName='Calibri')
-ylim([-.05 1.5])
+ylim([-.2 1.2])
 nexttile
 plot(t_vec_total, signal)
-ylabel('Amplitude (arbitrary)', FontWeight='normal');
+ylabel('Amplitude (arb.)', FontWeight='normal');
 ttl = title('c');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -375,6 +339,7 @@ xlabel('Time (Seconds)');
 set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 
+t1.Padding = "loose"
 set(gcf, 'Position', [50 100 1000 500])
 saveas(gcf,'Timedomain_Test_signal','svg')
 
@@ -400,7 +365,7 @@ np6 = 3;
 np7 = 3;
 
 % Plot RMSE
-figure(2)
+figure(3)
 b1 = bar(xlabels1, ydata1);
 xtips1 = b1(1).XEndPoints;
 ytips1 = b1(1).YEndPoints;
@@ -432,7 +397,7 @@ set(gcf, 'Position', [50 50 1000 300])
 saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
 % Plot SSI
-figure(3)
+figure(4)
 b2 = bar(xlabels2, ydata2);
 xtips1_2 = b2(1).XEndPoints;
 ytips1_2 = b2(1).YEndPoints;
@@ -454,251 +419,120 @@ xtickangle(90)
 set(gcf, 'Position', [50 100 350 300])
 saveas(gcf,'Final_methods_ERROR_analytical_SSI','svg')
 
-
 %% Plot More Figures - Time-Freq Representations
 
 % Common Axis limits
 freqlim = [10 70];
-timelim = [0 (n_samps_total/fs)];
+timelim = [0 7];
 
 % Init figure
-figure (6)
+figure (5)
 t1 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
-surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0;
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Short Window
 nexttile
-surf(stft_shortwin_f, stft_shortwin_t, stft_shortwin_plot', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(stft_shortwin_t, stft_shortwin_f, stft_shortwin_plot, freqlim, timelim)
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0;
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], FontSize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 t1.TileSpacing = 'compact';
 t1.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_shortSTFT','svg')
 
-figure (7)
+figure (6)
 t2 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
-surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0;
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90],  FontSize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 % Plot STFT with Long Window
 nexttile
-surf(stft_longwin_f, stft_longwin_t, stft_longwin_plot', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(stft_longwin_t, stft_longwin_f, stft_longwin_plot, freqlim, timelim)
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0;
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 t2.TileSpacing = 'compact';
 t2.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_longSTFT','svg')
 
-figure (8)
+figure (7)
 t3 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
-surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0; 
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 % Plot CWT
 nexttile
-surf(cwlet_f, t_vec_total, cwlet_plot', EdgeColor="none", FaceColor="texturemap")
+TFRplot(t_vec_total, cwlet_f, cwlet_plot, freqlim, timelim)
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0; 
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 t3.TileSpacing = 'compact';
 t3.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_CWT','svg')
 
-
-figure (9)
+figure (8)
 t4 = tiledlayout(1,2);
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
-surf(f_vec_total, t_vec_total, all_MAT', EdgeColor = 'none', FaceColor='texturemap')
+TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.Position(1) = 0; 
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 % Plot Superlets
 nexttile
-surf(f_vec_total, t_vec_total, slt_plot', EdgeColor="none", FaceColor="texturemap")
+TFRplot(t_vec_total, f_vec_total, slt_plot, freqlim, timelim)
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
 ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
 ttl.HorizontalAlignment = 'left';  
-axis on
-grid on
-xlabel('Frequency (Hz)');
-ylabel('Time (Seconds)');
-xlim(freqlim)
-ylim(timelim)
-set(gca, XDir="reverse", View=[90 90], fontsize=12, FontName='Calibri')
-ax = gca;
-ax.Layer = 'top';
-ax.GridColor = [1 1 1];
-ax.GridAlpha = 0.15;
-ax.XMinorGrid = 'on';
-ax.YMinorGrid = 'on';
-ax.MinorGridLineStyle = ':';
-ax.MinorGridColor = [1 1 1];
-ax.MinorGridAlpha = 0.15;
 
 t4.TileSpacing = 'compact';
 t4.Padding = 'loose';
 set(gcf, 'Position', [50 100 1000 450])
 saveas(gcf,'Groundtruth_vs_SWT','svg')
-
 
 t2.TileSpacing = 'compact';
 t2.Padding = 'loose';
