@@ -1,44 +1,46 @@
 %% Comparison of Time-Frequency Analysis Algorithms with Ground Truth.
-
+%
 % This script generates a carrier signal (linearly frequency swept sine)
 % and an amplitude modulation signal (linearly frequency swept square)
 % and multiplies them together, creating an amplitude modulated test signal.
 % It then constructs a matrix that can be thought of as a synthetic
 % spectrogram representing the "Ground Truth" of the test signal's
-% power as a function of both time & frequency. This spectrogram is
+% power, as a function of both time & frequency. This spectrogram is
 % constructed analytically using knowledge of the test signal's TF
 % charactertistics, rather than by transforming or otherwise analysing
-% the signal. This ground truth matrix serves as a theoretically perfect
-% spectrogram of the test signal. Several transform based TF analyses are
-% then performed and compared against the ground truth.
-
+% the signal, so is free from the artifacts, inaccuracies and loss of 
+% detail associated with TF analysis. This ground truth matrix therfore 
+% serves as a theoretically perfect spectrogram of the test signal. 
+% Several transform based TF analyses are then performed and compared 
+% against the ground truth using statistical tests of error.
+%
 % Note: if "carrier_freq1" x "mod_freq1", "carrier_freq2" x "mod_freq2",
 % or any of the products of their first 4 subharmonics reach a negative
 % value, this script will break.
-
+%
 % Methods compared:
 % Short Time Fourier Transform (short window)
 % Short Time Fourier Transform (long window)
 % Continuous Wavelet Transform
 % Fractional Adaptive Superresolution Wavelet Transform
-
+%
 % Ben Jancovich, 2022
 % Centre for Marine Science and Innovation
 % School of Biological, Earth and Environmental Sciences
 % University of New South Wales, Sydney, Australia
-
+%
 clear
 close
 clc
-
+%
 %% User Variables
 
 % STFT FFT size is locked at n_freqs_total*2 = 1250. This results in equal
 % number of frequency points between fmin and fmax for all methods. This is set
 % using fmin, fmax and fres for other methods.
-
+%
 % NOTE: fc1 and fc2 must NOT be the same frequency.
-
+%
 % Test Signal Parameters:
 fc1 = 50;                   % Sine Sweep start frequency (Hz) Must be ~= fc2
 fc2 = 30;                   % Sine Sweep end frequency (Hz) Must be ~= fc1
@@ -50,34 +52,36 @@ fs = 250;                   % Sampling Frequency (Hz)
 phi_carrier = 0;            % Initial phase of carrier waveform (degrees)
 phi_am = -90;               % Initial phase of AM waveform (degrees)
                             % chirp() returns cosine, so -90 ensures sweep
-                            % begins at max
+                            % begins at amplitude = 1 and holds for one 
+                            % half cycle.
+%
 % Ground Truth Parameters:
 sigma = 0.3;                % Standard deviation of gaussian filter
-
+%
 % Signal Analysis Parameters
 fmin = 10;                  % Lowest frquency of interest
 fmax = fs/2;                % Highest frequency of interest
 f_res = 0.2;                % Frequency resolution (Hz)
 powerscaling = 'lin';       % Plot power as 'lin' (W) or 'log' (dBW)  
-
+%
 % STFT Window Sizes
 n_fft = 2*((fs/2)/f_res);   % spectrogram FFT length (samples)
 win_long = n_fft/5;         % Window length for long STFT (samples)
 win_short = 50;             % Window length for short STFT (samples)
 overlap_long = 75;          % Window overlap % for long STFT
 overlap_short = 75;         % Window Overlap % for short STFT
-
+%
 % CWT Parameters
 tbp = 120;      % Time bandwidth product of Morse wavelet.
 gamma = 3;      % Symmetry of the wavelet. 3 = symmetric.
 vpo = 48;       % Voices per Octave. Must be in range 10 : 48
-
+%
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
 order = [10 50];    % Interval of superresolution orders
 mult = 1;           % Multiplicative ('1') or additive ('0') superresolution
 dcfilt = 10;        % Cutoff of DC filter (Hz)
-
+%
 %% Generate time & Frequency Vectors
 
 % Frequency & samp counts
@@ -189,7 +193,7 @@ stft_longwin_resz = stft_longwin_resz ./ max((stft_longwin_resz), [], 'all');
 cwlet_resz = cwlet_resz ./ max((cwlet_resz), [], 'all');
 slt_resz = slt_resz ./ max((slt_resz), [], 'all');
 
-%% Plot things to check for errors before continuing to Error Calculation
+%% TESTING: Plot things to check for errors before continuing to Error Calculation
 
 % Plot the Resized TFRs that will be used for error calculation,
 % side-by-side with their corresponding grounstruth TFRs to make sure they
