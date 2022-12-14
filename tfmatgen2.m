@@ -1,5 +1,5 @@
 function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t_vec, ...
-    duration_sweep, duration_silence)
+    duration_sweep, duration_silence, freqscale, f_dir)
 % This function generates a time-frequency representaiton of a test signal 
 % with known chracteristics, with size matching the sizes of arguments 
 % t_vec and f_vec. No transforms or signal analyses are used. 
@@ -15,7 +15,12 @@ function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t
 % f_vec             = Frequency vector corresponding to rows of matrix (Hz)
 % t_vec             = Time vector corresponding to columns of matric (s)
 % duration_sweep    = Duration of carrier and AM sweep signal (s)
-% duration_silence  = Duration of silence before and after test signal (s)
+% duration_silence  = Duration of silence before and after test signal (s)\
+% freqscale         = Selects linear ('lin') or logarithmic ('log') 
+%                       scaling for the frequency axis. Must match the
+%                       scaling of f_vec. (string)
+% f_dir             = Direction of the frequency vector. 'normal' is low to
+%                       high, 'reversed' is high to low. (string)
 %
 % Outputs:
 % matOUT            = The time-frequency representation of the prescribed 
@@ -45,15 +50,6 @@ emptymat = zeros(rows_out, cols_out);
 
 % Convert matrix to a table so we can index using non-integer freqs and times
 table = array2table(emptymat, VariableNames=t_labels, RowNames=f_labels);
-
-% %% Calculate time window
-% 
-% % Find delta between elements of the time vector to get timestep size (s)
-% t_step = round((diff(t_vec)), 3);
-% % Ensure all timesteps are same size in t_vec - If not, something is wrong
-% assert(range(t_step) == 0, 'Error: Time vector passed to tfrmatgen2.m is not linearly spaced')
-% % If we passed the assert, use first timestep size.
-% t_step = t_step(1);
 
 %% Generate sweep time index
 
@@ -85,22 +81,31 @@ sweep_fstart = f_vec(sweep_fidx_start);
 sweep_fend = f_vec(sweep_fidx_end);
 
 % % Construct Vector of sweep frequency indices
-f_indices_sweep_ideal = linspace(sweep_fstart, sweep_fend, length(t_indices_sweep));
+switch freqscale
+    case 'lin'
+        f_indices_sweep_ideal = linspace(sweep_fstart, sweep_fend, length(t_indices_sweep));
+    case 'log'
+        f_indices_sweep_ideal = logspace2(sweep_fstart, sweep_fend, length(t_indices_sweep));
+end
 
 % Compressed frequency resolution means sweep f_indices may not align
-% precisely with those of f_vec. Use closest freq indices from f_vec.
+% precisely with those of f_vec. Find closest freq indices in f_vec.
 for i = 1:length(f_indices_sweep_ideal)
     [~,sweep_fidx_all(i)] = min(abs(f_vec - f_indices_sweep_ideal(i)));
 end
+
+% Extract closest matching indices from f_vec
 f_indices_sweep = f_vec(sweep_fidx_all);
 
-% % Construct Vector of sweep frequency indices
-% if sweep_fstart > sweep_fend % case where the sweep decends in freq.
-%     f_indices_sweep = flip(f_vec(sweep_fidx_end:sweep_fidx_start));
-% elseif sweep_fstart < sweep_fend % case where the sweep ascends in freq.
-%     f_indices_sweep = f_vec(sweep_fidx_start:sweep_fidx_end);
+% % Reverse order of f_indices if specified by f_dir
+% switch f_dir
+%     case 'normal'
+%         % do nothing
+%     case 'reverse'
+%         % flip the vector
+%     f_indices_sweep = flip(f_indices_sweep);
 % end
-% 
+
 %% Write sweep data into table
 
 % Convert sweep indices from numbers to strings for table indexing
