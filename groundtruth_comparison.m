@@ -126,7 +126,162 @@ signal = sig_c_sil .* sig_am_sil;
 % Compute SLT
 slt = nfaslt(signal, fs, [dcfilt, fmax], n_freqs_total, c1, order, mult);
 
-%% Potted Data - Unit Convertsions & Normalizations
+
+
+%% Construct Ground Truth Matrices
+% Because each analysis algorithm will return a matrix with a different
+% number of rows (frequencies) and columns (times), and free-scale resizing them 
+% will corrupt the results, each analysis algorithm must be compared with 
+% its own groundtruth matrix having the same aspect ratio.
+
+% Generate groundtruth TFR that is used for plotting only
+[groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    f_vec_total, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, 0.5);
+
+% Generate stft_shortwin groundtruth & Corresponding time and freq vectors:
+[stft_shortwin_GT_t, stft_shortwin_GT_f, stft_shortwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    stft_shortwin_f, stft_shortwin_t, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+% Generate stft_longwin groundtruth & Corresponding time and freq vectors:
+[stft_longwin_GT_t, stft_longwin_GT_f, stft_longwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    stft_longwin_f, stft_longwin_t, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+% Generate CWT groundtruth & Corresponding time and freq vectors:
+[cwlet_GT_t, cwlet_GT_f, cwlet_GT] = buildgroundtruth(fc2, fc1, fam1, fam2, ...
+    cwlet_f, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res, 'log', 'reverse');
+% Note: the additional (optional) input arguments here are for logarithmic 
+% frequency scaling and a high to low (reversed) frequency axis for CWT. 
+% These are to match the GT to the output of the CWT algorithm.
+
+% % Generate SLT groundtruth & Corresponding time and freq vectors:
+[slt_GT_t, slt_GT_f, slt_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
+    f_vec_total, t_vec_total, sigma, duration_sweep,...
+    duration_silence, phi_am, fs, f_res);
+
+%% TFR Scaling
+
+% Resample the stft_shortwin TRF to match its groundtruth size
+stft_shortwin_resz = imresize(stft_shortwin, size(stft_shortwin_GT), Method="bilinear");
+
+% % Resample the stft_shortwin TRF to match its groundtruth size
+stft_longwin_resz = imresize(stft_longwin, size(stft_longwin_GT), Method="bilinear");
+% 
+% % Resample the CWT TRF to match its groundtruth size
+cwlet_resz = imresize(cwlet, size(cwlet_GT), Method="bilinear");
+% 
+% % Resample the SLT TRF to match its groundtruth size
+slt_resz = imresize(slt, size(slt_GT), Method="bilinear");
+
+%% Unit Convertsions & Normalizations - Error Calculation Data
+% Convert algorithm outputs to power (W)
+stft_shortwin_resz = abs(stft_shortwin_resz).^2;  % spectrogram returns complex data.
+stft_longwin_resz = abs(stft_longwin_resz).^2;    % spectrogram returns complex data.
+cwlet_resz = abs(cwlet_resz) .^2;                 % cwt returns complex data.
+slt_resz = slt_resz .^2;                          % nfaslt returns magnitude.
+
+% Normalize to max = 1
+stft_shortwin_resz = stft_shortwin_resz ./ max((stft_shortwin_resz), [], 'all');
+stft_longwin_resz = stft_longwin_resz ./ max((stft_longwin_resz), [], 'all');
+cwlet_resz = cwlet_resz ./ max((cwlet_resz), [], 'all');
+slt_resz = slt_resz ./ max((slt_resz), [], 'all');
+
+%% Plot things to check for errors before continuing to Error Calculation
+
+% Plot the Resized TFRs that will be used for error calculation,
+% side-by-side with their corresponding grounstruth TFRs to make sure they
+% are appropriately scaled, and there are no erronious frequency or time
+% shifts:
+figure(1)
+tiledlayout(4,2)
+nexttile
+imagesc(abs(stft_shortwin_resz))
+title('stft short')
+ylabel('Row Number')
+nexttile
+imagesc(stft_shortwin_GT)
+title('stft short GT')
+nexttile
+imagesc(abs(stft_longwin_resz))
+title('stft long')
+ylabel('Row Number')
+nexttile
+imagesc(stft_longwin_GT)
+title('stft long GT')
+nexttile
+imagesc(abs(cwlet_resz))
+title('cwt')
+ylabel('Row Number')
+nexttile
+imagesc(cwlet_GT)
+title('cwt GT')
+nexttile
+imagesc(slt_resz)
+title('slt')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(slt_GT)
+title('slt GT')
+xlabel('Column Number')
+sgtitle(['Resized TFRs & Corresponding Groundtruths', newline,...
+    'These Matrices Are Used to Compute Measures of Error'],...
+    FontWeight='bold')
+
+% Plot the resized TFR's used for error calculation, side-by-side with the 
+% originals to ensure resizing hasn't caused any interpolation artifacts.
+figure(10)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(stft_shortwin_resz))
+title('stft shortr resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(stft_shortwin).^2)
+title('stft short')
+xlabel('Column Number')
+
+figure(11)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(stft_longwin_resz))
+title('stft long resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(stft_longwin).^2)
+title('stft long')
+xlabel('Column Number')
+
+figure(12)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(cwlet_resz))
+title('cwt resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(cwlet).^2)
+title('cwt')
+xlabel('Column Number')
+
+figure(13)
+tiledlayout(1,2)
+nexttile
+imagesc(slt_resz)
+title('slt resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(slt.^2)
+title('slt')
+xlabel('Column Number')
+
+%% Unit Convertsions & Normalizations - Plotted Data 
 
 % Data to be plotted:
 % Convert algorithm outputs to power (W)
@@ -158,98 +313,6 @@ stft_shortwin_plot = stft_shortwin_plot ./ max((stft_shortwin_plot), [], 'all');
 stft_longwin_plot = stft_longwin_plot ./ max((stft_longwin_plot), [], 'all');
 cwlet_plot = cwlet_plot ./ max((cwlet_plot), [], 'all');
 slt_plot = slt_plot ./ max((slt_plot), [], 'all');
-
-
-%% Construct Ground Truth Matrices
-% Because each analysis algorithm will return a matrix with a different
-% number of rows (frequencies) and columns (times), and free-scale resizing them 
-% will corrupt the results, each analysis algorithm must be compared with 
-% its own groundtruth matrix having the same aspect ratio.
-
-% Generate groundtruth TFR that is used for plotting only
-[groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
-    f_vec_total, t_vec_total, sigma, duration_sweep,...
-    duration_silence, phi_am, fs, 0.5);
-
-% Generate stft_shortwin groundtruth & Corresponding time and freq vectors:
-[stft_shortwin_GT_t, stft_shortwin_GT_f, stft_shortwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
-    stft_shortwin_f, stft_shortwin_t, sigma, duration_sweep,...
-    duration_silence, phi_am, fs, f_res);
-
-% Generate stft_longwin groundtruth & Corresponding time and freq vectors:
-[stft_longwin_GT_t, stft_longwin_GT_f, stft_longwin_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
-    stft_longwin_f, stft_longwin_t, sigma, duration_sweep,...
-    duration_silence, phi_am, fs, f_res);
-
-% Generate CWT groundtruth & Corresponding time and freq vectors:
-[cwlet_GT_t, cwlet_GT_f, cwlet_GT] = buildgroundtruth(fc2, fc1, fam1, fam2, ...
-    cwlet_f, t_vec_total, sigma, duration_sweep,...
-    duration_silence, phi_am, fs, f_res);
-
-% % Generate SLT groundtruth & Corresponding time and freq vectors:
-[slt_GT_t, slt_GT_f, slt_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
-    f_vec_total, t_vec_total, sigma, duration_sweep,...
-    duration_silence, phi_am, fs, f_res);
-
-%% TFR Scaling
-
-% Resample the stft_shortwin TRF to match its groundtruth size
-stft_shortwin_resz = imresize(stft_shortwin, size(stft_shortwin_GT), Method="bilinear");
-
-% % Resample the stft_shortwin TRF to match its groundtruth size
-stft_longwin_resz = imresize(stft_longwin, size(stft_longwin_GT), Method="bilinear");
-% 
-% % Resample the CWT TRF to match its groundtruth size
-cwlet_resz = imresize(cwlet, size(cwlet_GT), Method="bilinear");
-% 
-% % Resample the SLT TRF to match its groundtruth size
-slt_resz = imresize(slt, size(slt_GT), Method="bilinear");
-
-%% Error Calculation - Unit Convertsions & Normalizations
-% Convert algorithm outputs to power (W)
-stft_shortwin_resz = abs(stft_shortwin_resz).^2;  % spectrogram returns complex data.
-stft_longwin_resz = abs(stft_longwin_resz).^2;    % spectrogram returns complex data.
-cwlet_resz = abs(cwlet_resz) .^2;                 % cwt returns complex data.
-slt_resz = slt_resz .^2;                          % nfaslt returns magnitude.
-
-% Normalize to max = 1
-stft_shortwin_resz = stft_shortwin_resz ./ max((stft_shortwin_resz), [], 'all');
-stft_longwin_resz = stft_longwin_resz ./ max((stft_longwin_resz), [], 'all');
-cwlet_resz = cwlet_resz ./ max((cwlet_resz), [], 'all');
-slt_resz = slt_resz ./ max((slt_resz), [], 'all');
-
-% Test plot - check that the images being compared in stat tests are
-% correct.
-figure(1)
-tiledlayout(4,2)
-nexttile
-imagesc(abs(stft_shortwin_resz))
-title('stft short')
-nexttile
-imagesc(stft_shortwin_GT)
-title('stft short GT')
-nexttile
-imagesc(abs(stft_longwin_resz))
-title('stft long')
-nexttile
-imagesc(stft_longwin_GT)
-title('stft long GT')
-nexttile
-imagesc(abs(cwlet_resz))
-title('cwt')
-nexttile
-imagesc(cwlet_GT)
-title('cwt GT')
-nexttile
-imagesc(slt_resz)
-title('slt')
-nexttile
-imagesc(slt_GT)
-title('slt GT')
-sgtitle('Resized TFRs & Corresponding Groundtruths for Error Analysis',...
-    FontWeight='bold')
-
-
 %% Estimate resolutions
 % % STFT Resolutions
 % stft_shortwin_fres = (fmax-fmin) / win_short;

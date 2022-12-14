@@ -1,5 +1,5 @@
 function [groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2, fam1, fam2, f_vec, t_vec,...
-    sigma, duration_sweep, duration_silence, phi_am, fs, f_res)
+    sigma, duration_sweep, duration_silence, phi_am, fs, f_res, freqscale, f_dir)
 % This function generates a time-frequency representation for an amplitude
 % modulated signal with known chracteristics, with aspect ratio matching the
 % ratio of sizes of arguments t_vec and f_vec. This is intended to serve as the
@@ -37,6 +37,12 @@ function [groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2
 % f_res             = The frequency resolution at which to generate the 
 %                       groundtruth. ie. the line width in the groundtruth
 %                       TFR. (Hz)
+% freqscale         = Selects linear ('lin') or logarithmic ('log') 
+%                       scaling for the frequency axis. Must match the
+%                       scaling of f_vec. (optional, string, default: lin)
+% f_dir             = Direction of the frequency vector. 'normal' is low to
+%                       high, 'reversed' is high to low. (optional, string, 
+%                       default: normal)
 %
 % Outputs:
 % groundtruth       = The matrix containing a theoretically perfect
@@ -46,15 +52,69 @@ function [groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2
 % groundtruth_t     = Time vector of the upscaled ground truth TFR (s)
 % groundtruth_f     = Frequency vector of the upscaled ground truth TFR (Hz)
 %
+
+%% Init
+
+% Set default values for optional input arguments if they are not present.
+
+% If less than 12 args are entered, throw error.
+if nargin < 12
+    assert(nargin >= 12, 'ERROR: NOT ENOUGH INPUT ARGUMENTS')
+
+    % If less than 13 args entered, init defaults for 13 and 14
+elseif nargin < 13
+    freqscale = 'lin';
+    f_dir = 'normal';
+
+    % If less than 14 are entered, first check 13:
+elseif nargin < 14
+    f_dir = 'normal';
+
+    % If 14 args are entered, check they are valid
+elseif nargin == 14
+
+    % If arg 13 is not 'lin' or 'log', use 'lin'.
+    if strcmp(freqscale, 'lin') ~= 1 && strcmp(freqscale, 'log') ~= 1
+        warning('Warning: invalid selection for freqscale argument. Using default value "lin"')
+        freqscale = 'lin';
+    end
+
+    % If arg 14 is not 'normal' or 'reverse', use 'normal'.
+    if strcmp(f_dir, 'normal') ~= 1 && strcmp(f_dir, 'reverse') ~= 1
+        warning('Warning: invalid selection for f_dir argument. Using default value "normal"')
+        f_dir = 'normal';
+    end
+
+    % If more than 14 args are entered, throw error.
+elseif nargin > 14
+    assert(nargin > 14, 'ERROR: TOO MANY INPUT ARGUMENTS')
+end
+
+% Set frequnecy vector direction
+switch f_dir
+    case 'normal'
+        f_start = min(f_vec);
+        f_end = max(f_vec);
+    case 'reverse'
+        f_start = max(f_vec);
+        f_end = min(f_vec);
+end
+
 %% Oversampling
+
 % Resample the time and frequency vectors for groundtruth so that the
 % aspect ratio is matched to the corresponding TFR, but with sufficient
 % resolution in frequency and time to render the true signal.
-
 % Chech for adequate time resolution
+
 if length(t_vec) < (fs*2)
     p = floor((fs*2) / length(t_vec));
-    groundtruth_f = linspace(min(f_vec), max(f_vec), p * length(f_vec))';
+    switch freqscale
+        case 'lin'
+            groundtruth_f = linspace(f_start, f_end, p * length(f_vec))';
+        case 'log'
+            groundtruth_f = logspace2(f_start, f_end, p * length(f_vec))';
+    end
     groundtruth_t = linspace(min(t_vec), max(t_vec), p * length(t_vec))';
 elseif length(t_vec) >= (fs*2)
     groundtruth_f = f_vec;
@@ -64,12 +124,15 @@ end
 % Chech for adequate frequency resolution
 if length(f_vec) < (max(f_vec)-min(f_vec))/f_res
     p = floor(fs / length(f_vec));
-    groundtruth_f = linspace(min(f_vec), max(f_vec), p * length(f_vec))';
+    switch freqscale
+        case 'lin'
+            groundtruth_f = linspace(f_start, f_end, p * length(f_vec))';
+        case 'log'
+            groundtruth_f = logspace2(f_start, f_end, p * length(f_vec))';
+    end
     groundtruth_t = linspace(min(t_vec), max(t_vec), p * length(t_vec))';
 elseif length(f_vec) >= (max(f_vec)-min(f_vec))/f_res
 end
-
-samps_per_sec = length(groundtruth_t) / (duration_sweep + (2*duration_silence));
 
 %% Calculate Sweep Start and End Frequencies for Sideband Components
 
@@ -111,19 +174,19 @@ assert(all(sideband_freqs >= 0), ['ERROR: THE PRODUCT OF CARRIER AND ' ...
 
 % Build matrices representing carrier and sideband components
 [n_sweep_samps, n_silence_samps, carrier_MAT] = tfmatgen2(fc1, fc2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, usb1_MAT] = tfmatgen2(usb1_f1, usb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, usb2_MAT] = tfmatgen2(usb2_f1, usb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, usb3_MAT] = tfmatgen2(usb3_f1, usb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, lsb1_MAT] = tfmatgen2(lsb1_f1, lsb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, lsb2_MAT] = tfmatgen2(lsb2_f1, lsb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 [~, ~, lsb3_MAT] = tfmatgen2(lsb3_f1, lsb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence);
+    duration_sweep, duration_silence, freqscale, f_dir);
 
 % Combine matrices for all components & scale
 groundtruth = carrier_MAT + (usb1_MAT .* 0.5) + ...
@@ -189,6 +252,18 @@ groundtruth = rescale(groundtruth);
 % Convert magnitude to power (W)
 groundtruth = groundtruth.^2;
 
-
-
-
+switch f_dir
+    case 'reverse'
+        % if reverse frequency direction is set, flip the matrix upside
+        % down (ie. along dimension 1)
+        groundtruth = flip(groundtruth, 1);
+        % Since the bottom freq may not be not zero, this flipping 
+        % does not necessarily flip about the midpoint of the f_axis. 
+        % This causes the GT to be shifted up by the value of f_min. 
+        % Circshift the matrix along dimension 1, by the value of 
+        % -fmin to correct this offset.
+        fmin = floor(min(groundtruth_f));
+        groundtruth = circshift(groundtruth, -fmin, 1);
+    case 'normal'
+        % do nothing
+end
