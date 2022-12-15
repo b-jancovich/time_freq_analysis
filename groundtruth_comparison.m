@@ -45,7 +45,7 @@ clc
 fc1 = 50;                   % Sine Sweep start frequency (Hz) Must be ~= fc2
 fc2 = 30;                   % Sine Sweep end frequency (Hz) Must be ~= fc1
 fam1 = 2;                   % Amplitude Modulation sweep start frequency (Hz)
-fam2 = 6;                   % Amplitude Modulation sweep end frequency (Hz)
+fam2 = 10;                  % Amplitude Modulation sweep end frequency (Hz)
 duration_sweep = 5;         % Sweep Duration
 duration_silence = 1;       % Silence to pad start and end (seconds)
 fs = 250;                   % Sampling Frequency (Hz)
@@ -72,8 +72,8 @@ overlap_long = 75;          % Window overlap % for long STFT
 overlap_short = 75;         % Window Overlap % for short STFT
 %
 % CWT Parameters
-tbp = 120;      % Time bandwidth product of Morse wavelet.
-gamma = 3;      % Symmetry of the wavelet. 3 = symmetric.
+tbp = 200;      % Time bandwidth product of Morse wavelet.
+gamma = 18;     % Symmetry of the wavelet. 3 = symmetric.
 vpo = 48;       % Voices per Octave. Must be in range 10 : 48
 %
 % Superlet Parameters
@@ -168,17 +168,20 @@ slt = nfaslt(signal, fs, [dcfilt, fmax], n_freqs_total, c1, order, mult);
 
 %% TFR Scaling
 
+% Set interpolation method to minimse artifacts:
+resize_method = 'nearest';
+
 % Resample the stft_shortwin TRF to match its groundtruth size
-stft_shortwin_resz = imresize(stft_shortwin, size(stft_shortwin_GT), Method="bilinear");
+stft_shortwin_resz = imresize(stft_shortwin, size(stft_shortwin_GT), Method=resize_method);
 
 % % Resample the stft_shortwin TRF to match its groundtruth size
-stft_longwin_resz = imresize(stft_longwin, size(stft_longwin_GT), Method="bilinear");
+stft_longwin_resz = imresize(stft_longwin, size(stft_longwin_GT), Method=resize_method);
 % 
 % % Resample the CWT TRF to match its groundtruth size
-cwlet_resz = imresize(cwlet, size(cwlet_GT), Method="bilinear");
+cwlet_resz = imresize(cwlet, size(cwlet_GT), Method=resize_method);
 % 
 % % Resample the SLT TRF to match its groundtruth size
-slt_resz = imresize(slt, size(slt_GT), Method="bilinear");
+slt_resz = imresize(slt, size(slt_GT), Method=resize_method);
 
 %% Unit Convertsions & Normalizations - Error Calculation Data
 % Convert algorithm outputs to power (W)

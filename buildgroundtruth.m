@@ -53,7 +53,7 @@ function [groundtruth_t, groundtruth_f, groundtruth] = buildgroundtruth(fc1, fc2
 % groundtruth_f     = Frequency vector of the upscaled ground truth TFR (Hz)
 %
 
-%% Init
+%% Init Vectors
 
 % Set default values for optional input arguments if they are not present.
 
@@ -138,9 +138,9 @@ end
 
 % Set Multiplication factors for sideband frequencies
 o1 = 1;
-o2 = 2;
-o3 = 3;
-o4 = 5;
+o2 = 3;
+o3 = 5;
+o4 = 7;
 
 % Calculate Start and End Frequencies for Upper Sideband Components
 usb1_f1 = fc1 + (fam1 * o1); % First order start
@@ -162,43 +162,42 @@ lsb3_f2 = fc2 - (fam2 * o3); % Third order end
 lsb4_f1 = fc1 - (fam1 * o4); % Fourth order start
 lsb4_f2 = fc2 - (fam2 * o4); % Fourth order end
 
-% Error handling
-sideband_freqs = [usb1_f1, usb1_f2, usb2_f1, usb2_f2, usb3_f1, usb3_f2, usb4_f1, usb4_f2,...
-    lsb1_f1, lsb1_f2, lsb2_f1, lsb2_f2, lsb3_f1, lsb3_f2, lsb4_f1, lsb4_f2,];
-
-% Make sure no frequency is negative
-assert(all(sideband_freqs >= 0), ['ERROR: THE PRODUCT OF CARRIER AND ' ...
-    'MODULATOR FREQUENCIES YOU HAVE ENTERED HAS RESULTED IN A FREQUENCY ' ...
-    'COMPONENT WITH NEGATIVE FREQUENCY. THIS IS NOT SUPPORTED. PLEASE ' ...
-    'INCREASE LOWEST CARRIER OR MODULATOR FREQUENCY'])
-
 % Build matrices representing carrier and sideband components
+% Carrier
 [n_sweep_samps, n_silence_samps, carrier_MAT] = tfmatgen2(fc1, fc2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
+% Upper Sidebands
 [~, ~, usb1_MAT] = tfmatgen2(usb1_f1, usb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
 [~, ~, usb2_MAT] = tfmatgen2(usb2_f1, usb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
 [~, ~, usb3_MAT] = tfmatgen2(usb3_f1, usb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
+[~, ~, usb4_MAT] = tfmatgen2(usb4_f1, usb4_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
+% Lower Sidebands
 [~, ~, lsb1_MAT] = tfmatgen2(lsb1_f1, lsb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
 [~, ~, lsb2_MAT] = tfmatgen2(lsb2_f1, lsb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
 [~, ~, lsb3_MAT] = tfmatgen2(lsb3_f1, lsb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale, f_dir);
+    duration_sweep, duration_silence, freqscale);
+[~, ~, lsb4_MAT] = tfmatgen2(lsb4_f1, lsb4_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
 
 % Combine matrices for all components & scale
-groundtruth = carrier_MAT + (usb1_MAT .* 0.5) + ...
-    (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) + ...
-    (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) + (lsb3_MAT .* 0.125);
+groundtruth = carrier_MAT + ...
+    (usb1_MAT .* 0.5) + (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) + (usb4_MAT .* 0.0625) + ...
+    (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) + (lsb3_MAT .* 0.125) + (lsb4_MAT .* 0.0625);
 
-% Thicken lines in ground truth to represent a 0.2Hz resolution
+imagesc(groundtruth)
+
+% Thicken lines in ground truth to match resolution set by f_res
 approx_f_res = mean(diff(groundtruth_f));
 target_f_res = f_res;
 r = floor(target_f_res / approx_f_res);
 for k = 1:r
-    for i = 1:length(groundtruth_f)
+    for i = 2:length(groundtruth_f)
         for j = 1:length(groundtruth_t)
             if groundtruth(i, j) ~= 0
                 groundtruth(i-1, j) = groundtruth(i, j);
@@ -209,15 +208,8 @@ end
 
 %% Amplitude modulation
 
-% t_interval = duration_sweep / n_sweep_samps;
-
-% AM Signal generation is done at 8x oversampling to avoid aliasing errors
-% when converting the sine wave of chirp() to a square wave. It is later
-% downsampled to match groundtruth.
-
 % AM sweep time vector
 t_vec_sweep = linspace(0, duration_sweep, n_sweep_samps);
-% t_vec_sweep = duration_silence:t_interval:duration_sweep+duration_silence;
 
 % Construct amplitude modulation vector
 sig_am = rescale(sign(chirp(t_vec_sweep, fam1, t_vec_sweep(end), fam2, 'linear', phi_am)));

@@ -1,5 +1,5 @@
 function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t_vec, ...
-    duration_sweep, duration_silence, freqscale, f_dir)
+    duration_sweep, duration_silence, freqscale)
 % This function generates a time-frequency representaiton of a test signal 
 % with known chracteristics, with size matching the sizes of arguments 
 % t_vec and f_vec. No transforms or signal analyses are used. 
@@ -19,8 +19,6 @@ function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t
 % freqscale         = Selects linear ('lin') or logarithmic ('log') 
 %                       scaling for the frequency axis. Must match the
 %                       scaling of f_vec. (string)
-% f_dir             = Direction of the frequency vector. 'normal' is low to
-%                       high, 'reversed' is high to low. (string)
 %
 % Outputs:
 % matOUT            = The time-frequency representation of the prescribed 
@@ -36,6 +34,27 @@ function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t
 % University of New South Wales, Sydney, Australia
 %
 %% Construct TFR as table
+
+% Extend f_vec below fmin to handle frequencies below fmin. This prevents
+% indexing errors when using negative frequencies.
+% Anything generated in this range will be discarded and not included in
+% analysis, so the <fmin part of this vector can be non-uniformly spaced 
+% and differently scaled.
+
+n_extrarows_below_fmin = 50;
+extrarows = linspace(-max(f_vec), min(f_vec)-1, n_extrarows_below_fmin);
+ar_f_vec = size(f_vec , 1) > size(f_vec , 2); % is row or column? 1 = col
+ar_extrarows = size(extrarows , 1) > size(extrarows , 2); % is row or column? 1 = col
+if ar_f_vec == ar_extrarows 
+    % do nothing
+elseif ar_f_vec ~= ar_extrarows
+    extrarows = extrarows';
+end
+if ar_f_vec == 1
+    f_vec = [extrarows; f_vec];
+elseif ar_f_vec ~= 1
+    f_vec = [extrarows, f_vec];
+end
 
 % Determine size of final output matrix
 rows_out = length(f_vec);
@@ -80,13 +99,14 @@ sweep_fstart = f_vec(sweep_fidx_start);
 [~,sweep_fidx_end] = min(abs(f_vec - fc2));
 sweep_fend = f_vec(sweep_fidx_end);
 
-% % Construct Vector of sweep frequency indices
-switch freqscale
-    case 'lin'
+% This bit might be wrong - commented out 15/12/22 11:50m
+% % % Construct Vector of sweep frequency indices
+% switch freqscale
+%     case 'lin'
         f_indices_sweep_ideal = linspace(sweep_fstart, sweep_fend, length(t_indices_sweep));
-    case 'log'
-        f_indices_sweep_ideal = logspace2(sweep_fstart, sweep_fend, length(t_indices_sweep));
-end
+%     case 'log'
+%         f_indices_sweep_ideal = logspace2(sweep_fstart, sweep_fend, length(t_indices_sweep));
+% end
 
 % Compressed frequency resolution means sweep f_indices may not align
 % precisely with those of f_vec. Find closest freq indices in f_vec.
@@ -96,15 +116,6 @@ end
 
 % Extract closest matching indices from f_vec
 f_indices_sweep = f_vec(sweep_fidx_all);
-
-% % Reverse order of f_indices if specified by f_dir
-% switch f_dir
-%     case 'normal'
-%         % do nothing
-%     case 'reverse'
-%         % flip the vector
-%     f_indices_sweep = flip(f_indices_sweep);
-% end
 
 %% Write sweep data into table
 
@@ -120,6 +131,10 @@ for i=1:length(f_indices_sweep)
     table{f_index, t_index} = 1;
 end
 
+% Trim off the rows below fmin
+extrarow_labels = arrayfun(@(z) num2str(z, 15), extrarows, 'UniformOutput', 0);
+table(extrarow_labels,:) = [];
+
 % Convert table back to a regular matrix
 matOUT = table2array(table);
 
@@ -128,5 +143,6 @@ n_sweep_samps = length(t_indices_sweep);
 
 % Number of zeros to pad as silence
 n_silence_samps = (cols_out - n_sweep_samps)/2;
+
 
 end
