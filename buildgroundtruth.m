@@ -190,8 +190,6 @@ groundtruth = carrier_MAT + ...
     (usb1_MAT .* 0.5) + (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) + (usb4_MAT .* 0.0625) + ...
     (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) + (lsb3_MAT .* 0.125) + (lsb4_MAT .* 0.0625);
 
-imagesc(groundtruth)
-
 % Thicken lines in ground truth to match resolution set by f_res
 approx_f_res = mean(diff(groundtruth_f));
 target_f_res = f_res;

@@ -14,9 +14,6 @@
 % Several transform based TF analyses are then performed and compared 
 % against the ground truth using statistical tests of error.
 %
-% Note: if "carrier_freq1" x "mod_freq1", "carrier_freq2" x "mod_freq2",
-% or any of the products of their first 4 subharmonics reach a negative
-% value, this script will break.
 %
 % Methods compared:
 % Short Time Fourier Transform (short window)
