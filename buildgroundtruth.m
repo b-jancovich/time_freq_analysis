@@ -141,6 +141,8 @@ o1 = 1;
 o2 = 3;
 o3 = 5;
 o4 = 7;
+o5 = 9;
+o6 = 11;
 
 % Calculate Start and End Frequencies for Upper Sideband Components
 usb1_f1 = fc1 + (fam1 * o1); % First order start
@@ -151,6 +153,10 @@ usb3_f1 = fc1 + (fam1 * o3); % Third order start
 usb3_f2 = fc2 + (fam2 * o3); % Third order end
 usb4_f1 = fc1 + (fam1 * o4); % Fourth order start
 usb4_f2 = fc2 + (fam2 * o4); % Fourth order end
+usb5_f1 = fc1 + (fam1 * o5); % Fifth order start
+usb5_f2 = fc2 + (fam2 * o5); % Fifth order end
+usb6_f1 = fc1 + (fam1 * o6); % Sixth order start
+usb6_f2 = fc2 + (fam2 * o6); % Sixth order end
 
 % Calculate Start and End Frequencies for Lower Sideband Components
 lsb1_f1 = fc1 - (fam1 * o1); % First order start
@@ -161,11 +167,19 @@ lsb3_f1 = fc1 - (fam1 * o3); % Third order start
 lsb3_f2 = fc2 - (fam2 * o3); % Third order end
 lsb4_f1 = fc1 - (fam1 * o4); % Fourth order start
 lsb4_f2 = fc2 - (fam2 * o4); % Fourth order end
+lsb5_f1 = fc1 - (fam1 * o5); % Fifth order start
+lsb5_f2 = fc2 - (fam2 * o5); % Fifth order end
+lsb6_f1 = fc1 - (fam1 * o6); % Sixth order start
+lsb6_f2 = fc2 - (fam2 * o6); % Sixth order end
 
-% Build matrices representing carrier and sideband components
+%% Build matrices representing carrier and sideband components. 
+
+% Call tfmatgen.m once for each component:
+
 % Carrier
 [n_sweep_samps, n_silence_samps, carrier_MAT] = tfmatgen2(fc1, fc2, groundtruth_f, groundtruth_t, ...
     duration_sweep, duration_silence, freqscale);
+
 % Upper Sidebands
 [~, ~, usb1_MAT] = tfmatgen2(usb1_f1, usb1_f2, groundtruth_f, groundtruth_t, ...
     duration_sweep, duration_silence, freqscale);
@@ -175,6 +189,11 @@ lsb4_f2 = fc2 - (fam2 * o4); % Fourth order end
     duration_sweep, duration_silence, freqscale);
 [~, ~, usb4_MAT] = tfmatgen2(usb4_f1, usb4_f2, groundtruth_f, groundtruth_t, ...
     duration_sweep, duration_silence, freqscale);
+[~, ~, usb5_MAT] = tfmatgen2(usb5_f1, usb5_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
+[~, ~, usb6_MAT] = tfmatgen2(usb6_f1, usb6_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
+
 % Lower Sidebands
 [~, ~, lsb1_MAT] = tfmatgen2(lsb1_f1, lsb1_f2, groundtruth_f, groundtruth_t, ...
     duration_sweep, duration_silence, freqscale);
@@ -184,11 +203,26 @@ lsb4_f2 = fc2 - (fam2 * o4); % Fourth order end
     duration_sweep, duration_silence, freqscale);
 [~, ~, lsb4_MAT] = tfmatgen2(lsb4_f1, lsb4_f2, groundtruth_f, groundtruth_t, ...
     duration_sweep, duration_silence, freqscale);
+[~, ~, lsb5_MAT] = tfmatgen2(lsb5_f1, lsb5_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
+[~, ~, lsb6_MAT] = tfmatgen2(lsb6_f1, lsb6_f2, groundtruth_f, groundtruth_t, ...
+    duration_sweep, duration_silence, freqscale);
 
-% Combine matrices for all components & scale
+% Combine matrices for all components & scale their magnitudes according to
+% halving power for each increasing order number
 groundtruth = carrier_MAT + ...
-    (usb1_MAT .* 0.5) + (usb2_MAT .* 0.25) + (usb3_MAT .* 0.125) + (usb4_MAT .* 0.0625) + ...
-    (lsb1_MAT .* 0.5) + (lsb2_MAT .* 0.25) + (lsb3_MAT .* 0.125) + (lsb4_MAT .* 0.0625);
+    (usb1_MAT .* 0.5) + ...
+    (usb2_MAT .* 0.25) + ...
+    (usb3_MAT .* 0.125) + ...
+    (usb4_MAT .* 0.0625) + ...
+    (usb5_MAT .* 0.0312) + ...
+    (usb6_MAT .* 0.0156) + ...
+    (lsb1_MAT .* 0.5) + ...
+    (lsb2_MAT .* 0.25) + ...
+    (lsb3_MAT .* 0.125) + ...
+    (lsb4_MAT .* 0.0625) + ...
+    (lsb5_MAT .* 0.0312) + ...
+    (lsb6_MAT .* 0.0156);
 
 % Thicken lines in ground truth to match resolution set by f_res
 approx_f_res = mean(diff(groundtruth_f));
@@ -233,27 +267,27 @@ groundtruth = imgaussfilt(groundtruth, 0.4);
 % Apply amplitude modulation
 groundtruth = groundtruth .* sig_am;
 
+%% Final cleanup
+
 % Add some gaussian smoothing
 groundtruth = imgaussfilt(groundtruth, 0.4);
 
 % Gaussian has changed range of values. Rescale to 0-1.
 groundtruth = rescale(groundtruth);
 
-% Convert magnitude to power (W)
-groundtruth = groundtruth.^2;
 
-switch f_dir
-    case 'reverse'
-        % if reverse frequency direction is set, flip the matrix upside
-        % down (ie. along dimension 1)
-        groundtruth = flip(groundtruth, 1);
-        % Since the bottom freq may not be not zero, this flipping 
-        % does not necessarily flip about the midpoint of the f_axis. 
-        % This causes the GT to be shifted up by the value of f_min. 
-        % Circshift the matrix along dimension 1, by the value of 
-        % -fmin to correct this offset.
-        fmin = floor(min(groundtruth_f));
-        groundtruth = circshift(groundtruth, -fmin, 1);
-    case 'normal'
-        % do nothing
-end
+% switch f_dir
+%     case 'reverse'
+%         % if reverse frequency direction is set, flip the matrix upside
+%         % down (ie. along dimension 1)
+%         groundtruth = flip(groundtruth, 1);
+%         % Since the bottom freq may not be not zero, this flipping 
+%         % does not necessarily flip about the midpoint of the f_axis. 
+%         % This causes the GT to be shifted up by the value of f_min. 
+%         % Circshift the matrix along dimension 1, by the value of 
+%         % -fmin to correct this offset.
+%         fmin = floor(min(groundtruth_f));
+%         groundtruth = circshift(groundtruth, -fmin, 1);
+%     case 'normal'
+%         % do nothing
+% end
