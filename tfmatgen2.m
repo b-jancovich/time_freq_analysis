@@ -1,5 +1,5 @@
 function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t_vec, ...
-    duration_sweep, duration_silence, freqscale)
+    duration_sweep, duration_silence)
 % This function generates a time-frequency representaiton of a test signal 
 % with known chracteristics, with size matching the sizes of arguments 
 % t_vec and f_vec. No transforms or signal analyses are used. 
@@ -33,28 +33,34 @@ function [n_sweep_samps, n_silence_samps, matOUT] = tfmatgen2(fc1, fc2, f_vec, t
 % School of Biological, Earth and Environmental Sciences
 % University of New South Wales, Sydney, Australia
 %
-%% Construct TFR as table
-
+%% Prepare frequency and vector based on freqscale and freqdir
+%
 % Extend f_vec below fmin to handle frequencies below fmin. This prevents
 % indexing errors when using negative frequencies.
 % Anything generated in this range will be discarded and not included in
 % analysis, so the <fmin part of this vector can be non-uniformly spaced 
 % and differently scaled.
+%
+% Determine if f_vec ascends or descends:
+if f_vec(1) < f_vec(end)
+    freqdir = 'normal';
+elseif f_vec(1) > f_vec(end)
+    freqdir = 'reverse';
+else
+    error('ERROR - F_VEC DOES NOT ASCEND OR DESCEND');
+end
 
-n_extrarows_below_fmin = 50;
-extrarows = linspace(-max(f_vec), min(f_vec)-1, n_extrarows_below_fmin);
-ar_f_vec = size(f_vec , 1) > size(f_vec , 2); % is row or column? 1 = col
-ar_extrarows = size(extrarows , 1) > size(extrarows , 2); % is row or column? 1 = col
-if ar_f_vec == ar_extrarows 
-    % do nothing
-elseif ar_f_vec ~= ar_extrarows
-    extrarows = extrarows';
+% Make some extra rows to insert below fmin:
+switch freqdir
+    case 'normal'
+        extrarows = linspace(-max(f_vec), min(f_vec)-1, length(f_vec))';
+        f_vec = [extrarows; f_vec];
+    case 'reverse'
+        extrarows = linspace(min(f_vec)-1, -max(f_vec), length(f_vec))';
+        f_vec = [f_vec; extrarows];
 end
-if ar_f_vec == 1
-    f_vec = [extrarows; f_vec];
-elseif ar_f_vec ~= 1
-    f_vec = [extrarows, f_vec];
-end
+
+%% Construct TFR as table
 
 % Determine size of final output matrix
 rows_out = length(f_vec);
@@ -75,12 +81,10 @@ table = array2table(emptymat, VariableNames=t_labels, RowNames=f_labels);
 % Discrete sampling means sweep does not start at precisely the perscribed time.
 % Find time index closest to prescribed start time
 [~,sweep_tidx_start] = min(abs(t_vec - duration_silence));
-% sweep_tstart = t_vec(sweep_tidx_start);
 
 % Discrete sampling means sweep does not end at precisely the perscribed time.
 % Find time index closest to prescribed end time
 [~,sweep_tidx_end] = min(abs(t_vec - (duration_silence+duration_sweep)));
-% sweep_tend = t_vec(sweep_tidx_end);
 
 % Construct vector of sweep time indices
 t_indices_sweep = t_vec(sweep_tidx_start:sweep_tidx_end);
@@ -91,22 +95,19 @@ t_indices_sweep = t_vec(sweep_tidx_start:sweep_tidx_end);
 % the prescribed frequency. Find freq index closest to prescribed start
 % frequency. 
 [~,sweep_fidx_start] = min(abs(f_vec - fc1));
-sweep_fstart = f_vec(sweep_fidx_start);
+fc1 = f_vec(sweep_fidx_start);
 
 % Compressed frequency resolution means sweep may not end at precisely 
 % the perscribed frequency. Find freq index closest to prescribed end
 % frequency. 
 [~,sweep_fidx_end] = min(abs(f_vec - fc2));
-sweep_fend = f_vec(sweep_fidx_end);
+fc2 = f_vec(sweep_fidx_end);
 
-% This bit might be wrong - commented out 15/12/22 11:50m
-% % % Construct Vector of sweep frequency indices
-% switch freqscale
-%     case 'lin'
-        f_indices_sweep_ideal = linspace(sweep_fstart, sweep_fend, length(t_indices_sweep));
-%     case 'log'
-%         f_indices_sweep_ideal = logspace2(sweep_fstart, sweep_fend, length(t_indices_sweep));
-% end
+% Number of columns containing the sweep
+n_cols_sweep = length(t_indices_sweep);
+
+% Construct Vector of sweep frequency indices
+f_indices_sweep_ideal = linspace(fc1, fc2, n_cols_sweep);
 
 % Compressed frequency resolution means sweep f_indices may not align
 % precisely with those of f_vec. Find closest freq indices in f_vec.
@@ -143,6 +144,3 @@ n_sweep_samps = length(t_indices_sweep);
 
 % Number of zeros to pad as silence
 n_silence_samps = (cols_out - n_sweep_samps)/2;
-
-
-end
