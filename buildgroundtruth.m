@@ -275,19 +275,18 @@ groundtruth = imgaussfilt(groundtruth, 0.4);
 % Gaussian has changed range of values. Rescale to 0-1.
 groundtruth = rescale(groundtruth);
 
-
-% switch f_dir
-%     case 'reverse'
-%         % if reverse frequency direction is set, flip the matrix upside
-%         % down (ie. along dimension 1)
-%         groundtruth = flip(groundtruth, 1);
-%         % Since the bottom freq may not be not zero, this flipping 
-%         % does not necessarily flip about the midpoint of the f_axis. 
-%         % This causes the GT to be shifted up by the value of f_min. 
-%         % Circshift the matrix along dimension 1, by the value of 
-%         % -fmin to correct this offset.
-%         fmin = floor(min(groundtruth_f));
-%         groundtruth = circshift(groundtruth, -fmin, 1);
-%     case 'normal'
-%         % do nothing
-% end
+switch f_dir
+    case 'reverse'
+        % if reverse frequency direction is set, flip the matrix upside
+        % down (ie. along dimension 1)
+        groundtruth = flip(groundtruth, 1);
+        % Since the bottom freq may not be not zero, this flipping 
+        % does not necessarily flip about the midpoint of the f_axis. 
+        % This causes the GT to be shifted up by the value of f_min. 
+        % Circshift the matrix along dimension 1, by the value of 
+        % -fmin to correct this offset.
+        fmin = floor(min(groundtruth_f));
+        groundtruth = circshift(groundtruth, -fmin, 1);
+    case 'normal'
+        % do nothing
+end
