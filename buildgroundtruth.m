@@ -105,10 +105,11 @@ end
 % Resample the time and frequency vectors for groundtruth so that the
 % aspect ratio is matched to the corresponding TFR, but with sufficient
 % resolution in frequency and time to render the true signal.
-% Chech for adequate time resolution
 
-if length(t_vec) < (fs*2)
-    p = floor((fs*2) / length(t_vec));
+% Chech for adequate time resolution
+minimum_cols = fs*2;
+if length(t_vec) < minimum_cols
+    p = floor(minimum_cols / length(t_vec));
     switch freqscale
         case 'lin'
             groundtruth_f = linspace(f_start, f_end, p * length(f_vec))';
@@ -122,8 +123,9 @@ elseif length(t_vec) >= (fs*2)
 end
 
 % Chech for adequate frequency resolution
-if length(f_vec) < (max(f_vec)-min(f_vec))/f_res
-    p = floor(fs / length(f_vec));
+minimum_rows = (max(f_vec)-min(f_vec))/f_res;
+if length(f_vec) < minimum_rows
+    p = floor(minimum_rows / length(f_vec));
     switch freqscale
         case 'lin'
             groundtruth_f = linspace(f_start, f_end, p * length(f_vec))';
