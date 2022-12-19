@@ -24,19 +24,17 @@
 % Centre for Marine Science and Innovation
 % School of Biological, Earth and Environmental Sciences
 % University of New South Wales, Sydney, Australia
-%
+
 clear
 close
 clc
-%
 %% User Variables
 
 % STFT FFT size is locked at n_freqs_total*2 = 1250. This results in equal
 % number of frequency points between fmin and fmax for all methods. This is set
 % using fmin, fmax and fres for other methods.
-%
 % NOTE: fc1 and fc2 must NOT be the same frequency.
-%
+
 % Test Signal Parameters:
 fc1 = 50;                   % Sine Sweep start frequency (Hz) Must be ~= fc2
 fc2 = 30;                   % Sine Sweep end frequency (Hz) Must be ~= fc1
@@ -50,34 +48,42 @@ phi_am = -90;               % Initial phase of AM waveform (degrees)
                             % chirp() returns cosine, so -90 ensures sweep
                             % begins at amplitude = 1 and holds for one 
                             % half cycle.
-%
+
 % Ground Truth Parameters:
 sigma = 0.3;                % Standard deviation of gaussian filter
-%
+
+% Plotting Parameters
+intensity_units = 'mag';    % Color axis units for TFR plotting. 
+%                           Options are:
+%                           Linear scaled magnitide = 'mag' 
+%                           Log scaled magnitude (dB) = 'magdb' 
+%                           Linear scaled power = 'pow' 
+%                           Log scaled power (dBW) = 'powdb'
+
 % Image Comparison Parameters:
 resize_method = 'nearest';  % Interpolation method - Nearest minimses artifacts
-%
+
 % Signal Analysis Parameters
 fmin = 10;                  % Lowest frquency of interest
 fmax = fs/2;                % Highest frequency of interest
 f_res = 0.2;                % Frequency resolution (Hz)
-%
+
 % STFT Window Sizes
 n_fft = 2*((fs/2)/f_res);   % spectrogram FFT length (samples)
 win_long = 250;             % Window length for long STFT (samples)
 win_short = 50;             % Window length for short STFT (samples)
 overlap_long = 75;          % Window overlap % for long STFT
 overlap_short = 75;         % Window Overlap % for short STFT
-%
+
 % CWT Parameters
 time_bandwidth = 87;        % Time bandwidth product of Morse wavelet.
 vpo = 16;                   % Voices per Octave. Must be in range 10 : 48
-%
+
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
 order = [10 40];    % Interval of superresolution orders
 mult = 1;           % Multiplicative ('1') or additive ('0') superresolution
-%
+
 %% Generate time & Frequency Vectors
 
 % Frequency & samp counts
@@ -92,8 +98,8 @@ t_vec_sweep = linspace(0, duration_sweep, n_samps_sweep);
 t_vec_total = linspace(0, n_samps_total/fs, n_samps_total);
 
 % Frequency vectors
-f_vec_sweep = linspace(fc1, fc2, n_freqs_sweep);
-f_vec_total = linspace(fmin, fmax, n_freqs_total);
+f_vec_sweep = linspace(fc1, fc2, n_freqs_sweep)';
+f_vec_total = linspace(fmin, fmax, n_freqs_total)';
 
 %% Generate signals
 
@@ -148,7 +154,7 @@ slt = nfaslt(signal, fs, [fmin, fmax], n_freqs_total, c1, order, mult);
     duration_silence, phi_am, fs, f_res);
 
 % Generate CWT groundtruth & Corresponding time and freq vectors:
-[cwlet_GT_t, cwlet_GT_f, cwlet_GT] = buildgroundtruth(fc2, fc1, fam1, fam2, ...
+[cwlet_GT_t, cwlet_GT_f, cwlet_GT] = buildgroundtruth(fc1, fc2, fam1, fam2, ...
     cwlet_f, t_vec_total, sigma, duration_sweep,...
     duration_silence, phi_am, fs, f_res, 'log', 'reverse');
 % Note: the additional (optional) input arguments here are for logarithmic 
@@ -160,19 +166,55 @@ slt = nfaslt(signal, fs, [fmin, fmax], n_freqs_total, c1, order, mult);
     f_vec_total, t_vec_total, sigma, duration_sweep,...
     duration_silence, phi_am, fs, f_res);
 
-%% Amplitude Unit Conversions & Normalizations
+%% Intensity Unit Conversions & Normalization
 
 % Convert algorithm outputs real magnitude
 stft_shortwin = abs(stft_shortwin);  % spectrogram returns complex data. Take absolute value to get magnitude.
 stft_longwin = abs(stft_longwin);    % spectrogram returns complex data. Take absolute value to get magnitude.
 cwlet = abs(cwlet);                  % cwt returns complex data. Take absolute value to get magnitude.
-slt = sqrt(slt);                     % nfaslt returns squared magnitude (power).  Take square root to get magnitude.
+slt = (slt);                         % nfaslt returns squared magnitude (power).  Take square root to get magnitude.
+
+switch intensity_units
+    case 'mag'
+        % do nothing
+    case 'magdb'
+        stft_shortwin = 20*log10(stft_shortwin); 
+        stft_shortwin_GT = 20*log10(stft_shortwin_GT); 
+        stft_longwin = 20*log10(stft_longwin);    
+        stft_longwin_GT = 20*log10(stft_longwin_GT);    
+        cwlet = 20*log10(cwlet);                  
+        cwlet_GT = 20*log10(cwlet_GT);                  
+        slt = 20*log10(slt);
+        slt_GT = 20*log10(slt_GT);
+    case 'pow'
+        stft_shortwin = stft_shortwin .^2; 
+        stft_shortwin_GT = stft_shortwin_GT .^2; 
+        stft_longwin = stft_longwin .^2;    
+        stft_longwin_GT = stft_longwin_GT .^2;    
+        cwlet = cwlet .^2;               
+        cwlet_GT = cwlet_GT .^2;               
+        slt = slt .^2;
+        slt_GT = slt_GT .^2;
+    case 'powdb'
+        stft_shortwin = 10*log10(stft_shortwin .^2); 
+        stft_shortwin_GT = 10*log10(stft_shortwin_GT .^2); 
+        stft_longwin = 10*log10(stft_longwin .^2);    
+        stft_longwin_GT = 10*log10(stft_longwin_GT .^2);    
+        cwlet = 10*log10(cwlet .^2);                  
+        cwlet_GT = 10*log10(cwlet_GT .^2);                  
+        slt = 10*log10(slt .^2);
+        slt_GT = 10*log10(slt_GT .^2);
+end
 
 % Normalize to max = 1
 stft_shortwin = stft_shortwin ./ max((stft_shortwin), [], 'all');
+stft_shortwin_GT = stft_shortwin_GT ./ max((stft_shortwin_GT), [], 'all');
 stft_longwin = stft_longwin ./ max((stft_longwin), [], 'all');
+stft_longwin_GT = stft_longwin_GT ./ max((stft_longwin_GT), [], 'all');
 cwlet = cwlet ./ max((cwlet), [], 'all');
+cwlet_GT = cwlet_GT ./ max((cwlet_GT), [], 'all');
 slt = slt ./ max((slt), [], 'all');
+slt_GT = slt_GT ./ max((slt_GT), [], 'all');
 
 %% Algorithmic TFR Scaling
 
@@ -204,90 +246,90 @@ nexttile
 imagesc(cwlet_GT)
 title('cwt GT')
 
-% tiledlayout(4,2)
-% nexttile
-% imagesc(abs(stft_shortwin_resz))
-% title('stft short')
-% ylabel('Row Number')
-% nexttile
-% imagesc(stft_shortwin_GT)
-% title('stft short GT')
-% nexttile
-% imagesc(abs(stft_longwin_resz))
-% title('stft long')
-% ylabel('Row Number')
-% nexttile
-% imagesc(stft_longwin_GT)
-% title('stft long GT')
-% nexttile
-% imagesc(abs(cwlet_resz))
-% title('cwt')
-% ylabel('Row Number')
-% nexttile
-% imagesc(cwlet_GT)
-% title('cwt GT')
-% nexttile
-% imagesc(slt_resz)
-% title('slt')
-% ylabel('Row Number')
-% xlabel('Column Number')
-% nexttile
-% imagesc(slt_GT)
-% title('slt GT')
-% xlabel('Column Number')
-% sgtitle(['Resized TFRs & Corresponding Groundtruths', newline,...
-%     'These Matrices Are Used to Compute Measures of Error'],...
-%     FontWeight='bold')
+tiledlayout(4,2)
+nexttile
+imagesc(abs(stft_shortwin_resz))
+title('stft short')
+ylabel('Row Number')
+nexttile
+imagesc(stft_shortwin_GT)
+title('stft short GT')
+nexttile
+imagesc(abs(stft_longwin_resz))
+title('stft long')
+ylabel('Row Number')
+nexttile
+imagesc(stft_longwin_GT)
+title('stft long GT')
+nexttile
+imagesc(abs(cwlet_resz))
+title('cwt')
+ylabel('Row Number')
+nexttile
+imagesc(cwlet_GT)
+title('cwt GT')
+nexttile
+imagesc(slt_resz)
+title('slt')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(slt_GT)
+title('slt GT')
+xlabel('Column Number')
+sgtitle(['Resized TFRs & Corresponding Groundtruths', newline,...
+    'These Matrices Are Used to Compute Measures of Error'],...
+    FontWeight='bold')
 
-% % Plot the resized TFR's used for error calculation, side-by-side with the 
-% % originals to ensure resizing hasn't caused any interpolation artifacts.
-% figure(10)
-% tiledlayout(1,2)
-% nexttile
-% imagesc(abs(stft_shortwin_resz))
-% title('stft shortr resized')
-% ylabel('Row Number')
-% xlabel('Column Number')
-% nexttile
-% imagesc(abs(stft_shortwin))
-% title('stft short')
-% xlabel('Column Number')
-% 
-% figure(11)
-% tiledlayout(1,2)
-% nexttile
-% imagesc(abs(stft_longwin_resz))
-% title('stft long resized')
-% ylabel('Row Number')
-% xlabel('Column Number')
-% nexttile
-% imagesc(abs(stft_longwin))
-% title('stft long')
-% xlabel('Column Number')
-% 
-% figure(12)
-% tiledlayout(1,2)
-% nexttile
-% imagesc(abs(cwlet_resz))
-% title('cwt resized')
-% ylabel('Row Number')
-% xlabel('Column Number')
-% nexttile
-% imagesc(abs(cwlet))
-% title('cwt')
-% xlabel('Column Number')
-% 
-% figure(13)
-% tiledlayout(1,2)
-% nexttile
-% imagesc(slt_resz)
-% title('slt resized')
-% ylabel('Row Number')
-% xlabel('Column Number')
-% nexttile
-% imagesc(slt)
-% title('slt')
-% xlabel('Column Number')
+% Plot the resized TFR's used for error calculation, side-by-side with the 
+% originals to ensure resizing hasn't caused any interpolation artifacts.
+figure(10)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(stft_shortwin_resz))
+title('stft shortr resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(stft_shortwin))
+title('stft short')
+xlabel('Column Number')
+
+figure(11)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(stft_longwin_resz))
+title('stft long resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(stft_longwin))
+title('stft long')
+xlabel('Column Number')
+
+figure(12)
+tiledlayout(1,2)
+nexttile
+imagesc(abs(cwlet_resz))
+title('cwt resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(abs(cwlet))
+title('cwt')
+xlabel('Column Number')
+
+figure(13)
+tiledlayout(1,2)
+nexttile
+imagesc(slt_resz)
+title('slt resized')
+ylabel('Row Number')
+xlabel('Column Number')
+nexttile
+imagesc(slt)
+title('slt')
+xlabel('Column Number')
 
 %% Compute Error
 
@@ -408,7 +450,7 @@ ytips4 = b1(4).YEndPoints;
 labels4 = string(round(b1(4).YData, np1));
 text(xtips4,ytips4,labels4,'HorizontalAlignment','left',...
     'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
-ylim([0 0.2])
+ylim([0 0.3])
 lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'

@@ -178,35 +178,35 @@ lsb6_f2 = fc2 - (fam2 * o6); % Sixth order end
 
 % Carrier
 [n_sweep_samps, n_silence_samps, carrier_MAT] = tfmatgen2(fc1, fc2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 
 % Upper Sidebands
 [~, ~, usb1_MAT] = tfmatgen2(usb1_f1, usb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, usb2_MAT] = tfmatgen2(usb2_f1, usb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, usb3_MAT] = tfmatgen2(usb3_f1, usb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, usb4_MAT] = tfmatgen2(usb4_f1, usb4_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, usb5_MAT] = tfmatgen2(usb5_f1, usb5_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, usb6_MAT] = tfmatgen2(usb6_f1, usb6_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 
 % Lower Sidebands
 [~, ~, lsb1_MAT] = tfmatgen2(lsb1_f1, lsb1_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, lsb2_MAT] = tfmatgen2(lsb2_f1, lsb2_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, lsb3_MAT] = tfmatgen2(lsb3_f1, lsb3_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, lsb4_MAT] = tfmatgen2(lsb4_f1, lsb4_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, lsb5_MAT] = tfmatgen2(lsb5_f1, lsb5_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 [~, ~, lsb6_MAT] = tfmatgen2(lsb6_f1, lsb6_f2, groundtruth_f, groundtruth_t, ...
-    duration_sweep, duration_silence, freqscale);
+    duration_sweep, duration_silence);
 
 % Combine matrices for all components & scale their magnitudes according to
 % halving power for each increasing order number
@@ -274,19 +274,3 @@ groundtruth = imgaussfilt(groundtruth, 0.4);
 
 % Gaussian has changed range of values. Rescale to 0-1.
 groundtruth = rescale(groundtruth);
-
-switch f_dir
-    case 'reverse'
-        % if reverse frequency direction is set, flip the matrix upside
-        % down (ie. along dimension 1)
-        groundtruth = flip(groundtruth, 1);
-        % Since the bottom freq may not be not zero, this flipping 
-        % does not necessarily flip about the midpoint of the f_axis. 
-        % This causes the GT to be shifted up by the value of f_min. 
-        % Circshift the matrix along dimension 1, by the value of 
-        % -fmin to correct this offset.
-        fmin = floor(min(groundtruth_f));
-        groundtruth = circshift(groundtruth, -fmin, 1);
-    case 'normal'
-        % do nothing
-end
