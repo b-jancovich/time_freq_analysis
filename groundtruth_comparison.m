@@ -76,8 +76,8 @@ overlap_long = 75;          % Window overlap % for long STFT
 overlap_short = 75;         % Window Overlap % for short STFT
 
 % CWT Parameters
-time_bandwidth = 87;        % Time bandwidth product of Morse wavelet.
-vpo = 16;                   % Voices per Octave. Must be in range 10 : 48
+time_bandwidth = 120;        % Time bandwidth product of Morse wavelet.
+vpo = 48;                   % Voices per Octave. Must be in range 10 : 48
 
 % Superlet Parameters
 c1 = 3;             % Initial number of cycles in superlet.
