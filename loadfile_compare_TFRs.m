@@ -182,14 +182,6 @@ while strcmp(run_loop, 'Yes') == 1
     % Set the units
     units = list{indx};
 
-    % Noise suppression threshold. Higher values result in more suppression.
-    prompt = (['Enter threshold for noise suppression:', newline,...
-        'Higher values result in more noise suppression.', newline',...
-        'An input of 0 will result in no noise suppression.']);
-    dims = [1 75];
-    default_threshold = {num2str(0.6)};
-    threshold = inputdlg(prompt, 'Noise Suppression', dims, default_threshold);
-
     % Save some RAM
     clearvars indx prompt definput dims
 
@@ -233,13 +225,13 @@ while strcmp(run_loop, 'Yes') == 1
     % Compute superlets
     swlet = nfaslt(signal, fs, [fmin, fmax], n_freqs, c1, order, mult);
 
-    %% Unit Conversions
+    %% Unit Conversions & Noise Floor Suppression
 
     % Convert algorithm outputs real magnitude
     stft_short = abs(stft_short);  % spectrogram returns complex data. Take absolute value to get magnitude.
     stft_long = abs(stft_long);    % spectrogram returns complex data. Take absolute value to get magnitude.
     cwlet = abs(cwlet);            % cwt returns complex data. Take absolute value to get magnitude.
-    swlet = (swlet);                   % nfaslt returns squared magnitude (power).  Take square root to get magnitude.
+    swlet = (swlet);               % nfaslt returns magnitude. No Nothing.
 
     % Perform unit conversions and normalizations on TFRs
     stft_short = TFRunitconvertNorm(stft_short, units);
@@ -247,25 +239,11 @@ while strcmp(run_loop, 'Yes') == 1
     cwlet = TFRunitconvertNorm(cwlet, units);
     swlet = TFRunitconvertNorm(swlet, units);
 
-    %% Noise Floor Suppression
-
-    % % rescale the data to a range of [-threshold : 1]
-    % stft_long = rescale(stft_long, -str2double(threshold{1}), 1);
-    % stft_short = rescale(stft_short, -str2double(threshold{1}), 1);
-    % cwlet = rescale(cwlet, -str2double(threshold{1}), 1);
-    % swlet = rescale(swlet, -str2double(threshold{1}), 1);
-    %
-    % % Set all values below 0 to 0, effectively silencing low powered pixels.
-    % stft_long(stft_long < 0) = 0;
-    % stft_short(stft_short < 0) = 0;
-    % cwlet(cwlet < 0) = 0;
-    % swlet(swlet < 0) = 0;
-
     %% Plotting
 
     paramstoprint = ['fs=', num2str(fs), '_',...
         'fres=', num2str(f_res), '_', 'fmin=', num2str(fmin), '_',...
-        'threshold=', threshold{1}];
+        '_', units];
 
     switch units
         case 'magnitude'
@@ -277,7 +255,6 @@ while strcmp(run_loop, 'Yes') == 1
         case 'powdb'
             magnitude_unit = 'Power (dBW)';
     end
-
 
     timelim = [0, t_vec(end)];
     freqlim = [fmin, fmax];
