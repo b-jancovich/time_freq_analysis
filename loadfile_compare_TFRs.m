@@ -5,7 +5,8 @@ clc
 % frequency analysis via four different methods, and compares the results.
 
 %% User Interaction: Load audio file
-[file, path] = uigetfile('.wav', 'Load WAV file to analyse');
+uiwait(msgbox('Please select a .wav file to analyse...'));
+[file, path] = uigetfile('.wav', 'Load WAV file:');
 [signal, original_fs] = audioread(fullfile(path, file));
 
 %% Strip Excess Channels
@@ -18,6 +19,188 @@ elseif size(signal, 2) ~= 1
     signal = signal(:, 1);
     warning('This script only supports mono audio files. Analysis proceeding on channel 1 only...')
 end
+
+%% User Interaction: Trim Audio
+
+% vectors and counts
+samps = length(signal);
+duration = samps / original_fs;
+t = linspace(0, duration, samps);
+
+% Dialog
+trim = questdlg(['The selected file is ', num2str(duration), ' seconds long.', newline,...
+    'Do you want to trim the audio file?', newline, ...
+    'Audio files longer than 1 minute may take a long time to analyse.'],...
+    'Trim Audio?', 'Yes', 'No', 'No');
+
+switch trim
+    case 'Yes'
+        % Plot time domain signal
+        t_start_init = num2str(t(1));
+        t_end_init = num2str(t(end));
+        figure(1)
+        plot(t, signal)
+        xlabel('Time (seconds)')
+        ylabel('Amplitude (arb)')
+        title('Original Time Domain Signal', 'FontWeight', 'bold')
+        set(gcf, 'Position', [100 100 700 450])
+
+        % Set new Start and End times via UI Dialog
+        prompt = {'Enter new start time (seconds):',...
+            'Enter new end time (seconnds):'};
+        dlgtitle = 'Enter new start & end times';
+        dims = [1 50];
+        definput = {t_start_init, t_end_init};
+        trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+
+        % Handle Invalid Entries
+        if str2double(trim_params{1}) < t(1) || str2double(trim_params{1}) > t(end)
+            uiwait(msgbox('Error: Invalid Start Time'));
+            prompt = {'Enter new start time (seconds):',...
+                'Enter new end time (seconnds):'};
+            dlgtitle = 'Enter new start & end times';
+            dims = [1 50];
+            definput = {t_start_init, t_end_init};
+            trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+        elseif str2double(trim_params{2}) < t(1) || str2double(trim_params{2}) > t(end)
+            uiwait(msgbox('Error: Invalid End Time'));
+            prompt = {'Enter new start time (seconds):',...
+                'Enter new end time (seconnds):'};
+            dlgtitle = 'Enter new start & end times';
+            dims = [1 50];
+            definput = {t_start_init, t_end_init};
+            trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+        elseif str2double(trim_params{1}) > str2double(trim_params{2})
+            uiwait(msgbox('Error: Start Time Must Be Smaller Than End Time'));
+            prompt = {'Enter new start time (seconds):',...
+                'Enter new end time (seconnds):'};
+            dlgtitle = 'Enter new start & end times';
+            dims = [1 50];
+            definput = {t_start_init, t_end_init};
+            trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+        end
+
+        % Extract Params
+        t_start = str2double(trim_params(1));
+        t_end = str2double(trim_params(2));
+
+        % Trim signal
+        [~,start_idx] = min(abs(t - t_start));
+        [~,end_idx] = min(abs(t - t_end));
+        trimmed_sig = signal(start_idx:end_idx);
+        trimmed_samps = length(trimmed_sig);
+        trimmed_duration = trimmed_samps / original_fs;
+        trimmed_t = linspace(1, trimmed_duration, trimmed_samps);
+
+        % Update plot
+        figure(1)
+        plot(trimmed_t, trimmed_sig)
+        xlabel('Time (seconds)')
+        ylabel('Amplitude (arb)')
+        title('Trimmed Time Domain Signal', 'FontWeight', 'bold')
+        set(gcf, 'Position', [100 100 700 450])
+
+        % Trim again?
+        proceed = questdlg('Proceed to analysis or re-trim audio?', 'Re-trim audio',...
+            'Proceed', 'Re-trim', 'Proceed');
+        
+        % Do more trimming until happy to proceed
+        while strcmpi(proceed, 'Re-trim')
+            
+            % Decide how to retrim
+            how2trim = questdlg(['Return to full-length, orignal file to re-trim,', newline...
+                'or continue trimming from previous window?'],...
+                'Re-trim Audio', 'Return to original', 'Continue', 'Continue');
+            
+            % Set input vector as per "how2trim"
+            switch how2trim
+                case 'Return to Original'
+                    % signal = signal; ie. do nothing.
+                case 'Continue'
+                    signal = trimmed_sig;
+                    samps = length(signal);
+                    duration = samps / original_fs;
+                    t = linspace(0, duration, samps);
+            end
+
+            % Plot time domain signal
+            close 1
+            t_start_init = num2str(t(1));
+            t_end_init = num2str(t(end));
+            figure(1)
+            plot(t, signal)
+            xlabel('Time (seconds)')
+            ylabel('Amplitude (arb)')
+            title('Original Time Domain Signal', 'FontWeight', 'bold')
+            set(gcf, 'Position', [100 100 700 450])
+
+            % Set new Start and End times via UI Dialog
+            prompt = {'Enter new start time (seconds):',...
+                'Enter new end time (seconnds):'};
+            dlgtitle = 'Enter new start & end times';
+            dims = [1 50];
+            definput = {t_start_init, t_end_init};
+            trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+
+            % Handle Invalid Entries
+            if str2double(trim_params{1}) < t(1) || str2double(trim_params{1}) > t(end)
+                uiwait(msgbox('Error: Invalid Start Time'));
+                prompt = {'Enter new start time (seconds):',...
+                    'Enter new end time (seconnds):'};
+                dlgtitle = 'Enter new start & end times';
+                dims = [1 50];
+                definput = {t_start_init, t_end_init};
+                trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+            elseif str2double(trim_params{2}) < t(1) || str2double(trim_params{2}) > t(end)
+                uiwait(msgbox('Error: Invalid End Time'));
+                prompt = {'Enter new start time (seconds):',...
+                    'Enter new end time (seconnds):'};
+                dlgtitle = 'Enter new start & end times';
+                dims = [1 50];
+                definput = {t_start_init, t_end_init};
+                trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+            elseif str2double(trim_params{1}) > str2double(trim_params{2})
+                uiwait(msgbox('Error: Start Time Must Be Smaller Than End Time'));
+                prompt = {'Enter new start time (seconds):',...
+                    'Enter new end time (seconnds):'};
+                dlgtitle = 'Enter new start & end times';
+                dims = [1 50];
+                definput = {t_start_init, t_end_init};
+                trim_params = inputdlg(prompt,dlgtitle,dims,definput);
+            end
+
+            % Extract Params
+            t_start = str2double(trim_params(1));
+            t_end = str2double(trim_params(2));
+
+            % Trim signal
+            [~,start_idx] = min(abs(t - t_start));
+            [~,end_idx] = min(abs(t - t_end));
+            trimmed_sig = signal(start_idx:end_idx);
+            trimmed_samps = length(trimmed_sig);
+            trimmed_duration = trimmed_samps / original_fs;
+            trimmed_t = linspace(1, trimmed_duration, trimmed_samps);
+
+            % Update plot
+            figure(1)
+            plot(trimmed_t, trimmed_sig)
+            xlabel('Time (seconds)')
+            ylabel('Amplitude (arb)')
+            title('Trimmed Time Domain Signal', 'FontWeight', 'bold')
+            set(gcf, 'Position', [100 100 700 450])
+
+            % Trim again?
+            proceed = questdlg('Proceed to analysis or re-trim audio?', 'Re-trim audio',...
+                'Proceed', 'Re-trim', 'Proceed');
+
+            close 1
+        end
+        signal = trimmed_sig;
+    case 'Proceed'
+end
+
+clearvars t duration start_idx end_idx t_start t_end samps trimmed_samps trimmed_duration trimmed_sig trimmed_t
+
 %% User Interaction: Resample audio
 
 resample = questdlg(['Original sample rate is ', num2str(original_fs), 'Hz. ',...
@@ -29,15 +212,32 @@ resample = questdlg(['Original sample rate is ', num2str(original_fs), 'Hz. ',..
 switch resample
     case 'Yes'
         while strcmpi(resample, 'Yes')
+
             % Set Analysis Sampling Frequency (UI Dialog)
             prompt = ['Enter a new, lower sample rate:', newline,...
                 newline, 'Upper frequency limit = sample rate / 2'];
             dlgtitle = 'Sample Rate Conversion';
-            definput = {num2str(original_fs)};
+            definput = {num2str(original_fs/2)};
             dims = [1 50];
             fs = str2double(inputdlg(prompt,dlgtitle,dims,definput));
-            assert(fs < original_fs, 'Error: New Fs must be lower than original Fs');
+
+            % Handle invalid input
+            if fs > original_fs
+                uiwait(msgbox('Error: New fs must be lower than original fs.'));
+                prompt = ['Enter a new, lower sample rate:', newline,...
+                    newline, 'Upper frequency limit = sample rate / 2'];
+                dlgtitle = 'Sample Rate Conversion';
+                definput = {num2str(original_fs/2)};
+                dims = [1 50];
+                fs = str2double(inputdlg(prompt,dlgtitle,dims,definput));
+            end
+
+            % Resampling progress bar
+            wbar = waitbar(0.25,'Please wait, resampling audio...');
             signal_downsamp = easySRC(signal, original_fs, fs, fs/2);
+            waitbar(0.75, wbar, 'Please wait, resampling audio...')
+            pause(1)
+            close(wbar)
 
             % Plot a quick spectrogram to check if sample rate is appropriate
             W = 0.2;
@@ -70,7 +270,7 @@ switch resample
                 'Signal of interest should be within bounds of plot.', newline...
                 'Downsample further if upper frequencies contain no signals of interest.', newline], 'FontWeight', 'bold')
             set(gcf, 'Position', [100 100 700 650])
-            
+
             % Resample again?
             resample = questdlg('Do you need to downsample again?',...
                 'Resample again?', 'Yes', 'No', 'No');
@@ -90,7 +290,6 @@ clearvars si s2 f1 f2 t1 t2 tf W O prompt dlgtitle definput dims signal_downsamp
 %% Start Anaysis Loop
 run_loop = 'Yes';
 while strcmp(run_loop, 'Yes') == 1
-
     %% User Interaction: Set Analysis Algorithm Parameters
 
     % NOTE Maximum frequency of interest is automatically set according
@@ -155,7 +354,7 @@ while strcmp(run_loop, 'Yes') == 1
     % save some ram:
     clearvars dims dlgtitle prompt global_params STFT_params CWT_params SWT_params definput
 
-    %% User Interaction: Set Units and Plotting Parameters 
+    %% User Interaction: Set Units and Plotting Parameters
 
     % Dialog box to ask whether to plot frequency as lin or log.
     freqplotscaling = questdlg('Plot Frequency Axis on Linear or Logarithmic Scale?',...
@@ -185,9 +384,12 @@ while strcmp(run_loop, 'Yes') == 1
     % Save some RAM
     clearvars indx prompt definput dims
 
+    % Notify before save dialog
+    uiwait(msgbox('Please select a directory to save the results...'));
+
     % Select directory to save figures to
     here = pwd;
-    savepath = uigetdir(here, 'Select Figure Save Directory');
+    savepath = uigetdir(here, 'Select Save Directory');
 
     %% Vectors and Counts
 
@@ -211,21 +413,36 @@ while strcmp(run_loop, 'Yes') == 1
 
     %% Compute Transforms
 
+    % Progress Bar
+    wbar = waitbar(0.2, 'Please wait, computing short-STFT...');
+    pause(1)
+
     % Compute Short Window STFT
     [stft_short, stftshort_freq, stftshort_time] = spectrogram(signal, ...
         win_short, ceil(win_short*(overlap_short/100)), n_fft, fs, "yaxis");
 
-    % Compute Short Window STFT
+    % Progress Bar
+    waitbar(0.3, wbar, 'Please wait, computing long-STFT...');
+    pause(1)
+
+    % Compute Long Window STFT
     [stft_long, stftlong_freq, stftlong_time] = spectrogram(signal, ...
         win_long, ceil(win_long*(overlap_long/100)), n_fft, fs, "yaxis");
+
+    % Progress Bar
+    waitbar(0.40, wbar, 'Please wait, computing CWT...');
+    pause(1)
 
     % Compute CWT
     [cwlet, f_cwt] = cwt(signal, fs, VoicesPerOctave=vpo, timeBandWidth=time_bandwidth, FrequencyLimits=[fmin fmax]);
 
+    % Progress Bar
+    waitbar(0.60, wbar, 'Please wait, computing SLT...');
+
     % Compute superlets
     swlet = nfaslt(signal, fs, [fmin, fmax], n_freqs, c1, order, mult);
 
-    %% Unit Conversions & Noise Floor Suppression
+    %% Unit Conversions
 
     % Convert algorithm outputs real magnitude
     stft_short = abs(stft_short);  % spectrogram returns complex data. Take absolute value to get magnitude.
@@ -240,6 +457,12 @@ while strcmp(run_loop, 'Yes') == 1
     swlet = TFRunitconvertNorm(swlet, units);
 
     %% Plotting
+
+    % Progress Bar
+    waitbar(0.9, wbar, 'Please wait, generating plots...');
+    pause(2)
+
+    % Plotting
 
     paramstoprint = ['fs=', num2str(fs), '_',...
         'fres=', num2str(f_res), '_', 'fmin=', num2str(fmin), '_',...
@@ -297,7 +520,7 @@ while strcmp(run_loop, 'Yes') == 1
     % Plot STFT with Short Window
     nexttile([2,1])
     surf(stftshort_freq, stftshort_time, stft_short', EdgeColor = 'none', FaceColor='texturemap')
-    ttl = title(['b']); %  - ', stftshort_name, ' Spectrogram'
+    ttl = title('b'); %  - ', stftshort_name, ' Spectrogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
     ttl.Units = 'Normalize';
@@ -326,7 +549,7 @@ while strcmp(run_loop, 'Yes') == 1
     % Plot STFT with Long Window
     nexttile([2,1])
     surf(stftlong_freq, stftlong_time, stft_long', EdgeColor = 'none', FaceColor='texturemap')
-    ttl = title(['c']); %  - ', stftlong_name, ' Spectrogram'
+    ttl = title('c'); %  - ', stftlong_name, ' Spectrogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
     ttl.Units = 'Normalize';
@@ -413,10 +636,12 @@ while strcmp(run_loop, 'Yes') == 1
     t1.Padding = 'compact';
     set(gcf, 'Position', [10 10 1000 2100])
 
+    % Close progress bar
+    close(wbar)
+
+    % Save figures
     savename = [file(1:end-4), '_', paramstoprint, '.svg'];
     saveas(gcf, fullfile(savepath,savename), 'svg')
-
-    % clearvars -except path file
     %% User Interaction: Optional Audio Playback
 
     play = questdlg('Do you want to playback original audio?',...
@@ -433,7 +658,3 @@ while strcmp(run_loop, 'Yes') == 1
     run_loop = questdlg('Do you want to re-run the TF analysis on the same audio?', 'Re-Run Analysis?', 'Yes', 'No', 'No');
 
 end
-
-% clearvars
-
-%% To do - Progress Bar
