@@ -1,9 +1,20 @@
 clear
 close all
 clc
-% This is a GUI-based tool that loads an audio file and performs time
-% frequency analysis via four different methods, and compares the results.
-
+% This script is the backend for a GUI-based tool that loads an audio 
+% file and performs time frequency analysis via four different methods, 
+% and then compares the results. The algorithm for Superlet Transform, 
+% implemented using the function 'nfaslt.m", was developed by
+% Mocal et al. (2021), and released under MIT licence by the 
+% Transylvanian Institute Of Neuroscience.
+%
+% Ben Jancovich, 2022
+% University of New South Wales
+% This work is licensed under the Creative Commons Attribution 4.0 
+% International License. To view a copy of this license, visit 
+% http://creativecommons.org/licenses/by/4.0/ or send a letter to 
+% Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+%
 %% Init home directory
 if ispc
   home = getenv('USERPROFILE');
