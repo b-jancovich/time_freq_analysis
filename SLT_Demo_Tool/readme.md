@@ -1,17 +1,17 @@
 README
-SLT_Demo_Tool V1.0
+<br/> SLT_Demo_Tool V1.0
 
 Ben Jancovich
-b.jancovich@unsw.edu.au
+<br/> b.jancovich@unsw.edu.au
 
 Center For Marine Science and Innovation
-School of Biological, Earth & Environmental Sciences
-University of New South Wales
+<br/> School of Biological, Earth & Environmental Sciences
+<br/> University of New South Wales
 
-Summary:
+SUMMARY:
 This program loads an audio file, computes spectrograms and scalograms using different algorithms & then plots for comparison
 
-Program Description:
+PROGRAM DESCRIPTION:
 This program compares methods for time-frequency analysis of complex, low frequency animal calls. 
 The purpose of this program is to demonstrate the Superlets Transform (Moca et al., 2021) as a method for time frequency anaysis in bioacoustics, 
 and to illustrate its advantages over conventional methods such as the short-time Fourier transform.
@@ -36,5 +36,15 @@ Two STFT analyses are performed, with different window lengths.
 Results are plotted in a single window, and UI dialog asks whether to play the audio file over the currently selected windows audio device.
 A final UI element then asks if the user would like to re-run the analysis on the same (trimmed and resampled) audio file, 
 providing an opportunity to test different analysis algorithm parameters.
+
+SYSTEM REQUIREMENTS:
+- Windows 10 or later (64-bit)
+- MATLAB Runtime (Installed automatically if not already present)
+
+INSTALLATION:
+- Double Click the file "SLT_Demo_Tool_WebInstaller.exe".
+- The installer will search your system for an installation of MATLAB Runtime.
+- If it is not present, it will download and install it automatically. 
+- NOTE: The MATLAB Runtime installer requires approximately 2 GB of disk space.
 
 ____________________________________________________________________________
