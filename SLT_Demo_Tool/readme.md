@@ -19,17 +19,17 @@ and to illustrate its advantages over conventional methods such as the short-tim
 The program is designed to run as a standalone application, with no software dependancies, and no pre-requisite knowledge of coding or signal processing.
 It has a rudimentary user interface that allows the user to do the following pre-processing tasks:
 
-	- Load an audio file
-	- Trim the file to the time segment of interest
-	- Resample the file to the frequency range of interest
+- Load an audio file
+- Trim the file to the time segment of interest
+- Resample the file to the frequency range of interest
 
 The program then asks the user to configure the parameters for each analysis algorithm. 
 The recommended value for each parameter is pre-filled in the UI dialog boxes. The algorithms used are:
 
-	- Short-time Fourier transform - implemented using the built-in MATLAB function "spectrogram.m"
-	- Continuous wavelet transform - implemented using the built-in MATLAB function "cwt.m"
-	- Fractional Adaptive Superresolution Wavelet Transform - implemented using function "nfaslt.m", developed by Moca et al. (2021), 
-	released under MIT licence at https://github.com/TransylvanianInstituteOfNeuroscience/Superlets
+- Short-time Fourier transform - implemented using the built-in MATLAB function "spectrogram.m"
+- Continuous wavelet transform - implemented using the built-in MATLAB function "cwt.m"
+- Fractional Adaptive Superresolution Wavelet Transform - implemented using function "nfaslt.m", developed by Moca et al. (2021), 
+released under MIT licence at https://github.com/TransylvanianInstituteOfNeuroscience/Superlets
 
 A UI dialog asks the user to select a location to save the results. 
 Two STFT analyses are performed, with different window lengths. 
