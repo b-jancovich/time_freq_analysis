@@ -21,7 +21,7 @@ To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0
 
 ________________________________________________________________________________
 
-The Superlet Transform function "nfaslt.m" is licenced by the Transylvanian Institute of Neuroscience under the MIT License
+The Superlet Transform function "nfaslt.m" was released by the Transylvanian Institute of Neuroscience under the MIT License
 Copyright (c) 2020 Harald Bârzan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
