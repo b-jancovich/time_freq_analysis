@@ -465,7 +465,7 @@ while strcmp(run_loop, 'Yes') == 1
     stft_short = abs(stft_short);  % spectrogram returns complex data. Take absolute value to get magnitude.
     stft_long = abs(stft_long);    % spectrogram returns complex data. Take absolute value to get magnitude.
     cwlet = abs(cwlet);            % cwt returns complex data. Take absolute value to get magnitude.
-    swlet = (swlet);               % nfaslt returns magnitude. No Nothing.
+    swlet = sqrt(swlet);           % nfaslt returns squre of magnitude (power). Take sqrt for magnitude.
 
     % Perform unit conversions and normalizations on TFRs
     stft_short = TFRunitconvertNorm(stft_short, units);

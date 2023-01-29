@@ -172,7 +172,7 @@ slt = nfaslt(signal, fs, [fmin, fmax], n_freqs_total, c1, order, mult);
 stft_shortwin = abs(stft_shortwin);  % spectrogram returns complex data. Take absolute value to get magnitude.
 stft_longwin = abs(stft_longwin);    % spectrogram returns complex data. Take absolute value to get magnitude.
 cwlet = abs(cwlet);                  % cwt returns complex data. Take absolute value to get magnitude.
-slt = (slt);                         % nfaslt returns squared magnitude (power).  Take square root to get magnitude.
+slt = sqrt(slt);                     % nfaslt returns squared magnitude (power).  Take square root to get magnitude.
 
 switch intensity_units
     case 'mag'
@@ -429,6 +429,8 @@ np7 = 3;
 
 % Plot RMSE
 figure(3)
+tiledlayout(1, 2)
+nexttile
 b1 = bar(xlabels1, ydata1);
 xtips1 = b1(1).XEndPoints;
 ytips1 = b1(1).YEndPoints;
@@ -455,15 +457,23 @@ lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
 grid on
+ttl = title('a');
+tt1.FontWeight = 'bold';
+tt1.fontsize = 12;
+ttl.Units = 'Normalize'; 
+ttl.Position(1) = 0; % use negative values (ie, -0.1) to move further left
+ttl.HorizontalAlignment = 'left';  
 set(gca, FontSize=12, FontName='Calibri')
-set(gcf, 'Position', [50 50 1000 300])
-saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
+xtickangle(90)
+
+% set(gcf, 'Position', [50 50 1000 300])
+% saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
 % Plot SSI
 xlabels3 = categorical({[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SWT'});
 % xlabels3 = reordercats(xlabels2,{[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SWT'});
-
-figure(4)
+nexttile
+% figure(4)
 b2 = bar(xlabels3, ydata2);
 xtips1_2 = b2(1).XEndPoints;
 ytips1_2 = b2(1).YEndPoints;
@@ -471,7 +481,7 @@ labels1_2 = string(round(b2(1).YData, np2));
 text(xtips1_2,ytips1_2,labels1_2,'HorizontalAlignment','center',...
     'VerticalAlignment','bottom')
 ylabel 'SSI re. Ground Truth'
-ttl = title('a');
+ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
@@ -482,8 +492,11 @@ grid on
 set(gca, FontSize=12, FontName='Calibri')
 xtickangle(90)
 
-set(gcf, 'Position', [50 100 350 300])
-saveas(gcf,'Final_methods_ERROR_analytical_SSI','svg')
+% set(gcf, 'Position', [50 100 350 300])
+% saveas(gcf,'Final_methods_ERROR_analytical_SSI','svg')
+
+set(gcf, 'Position', [50 50 1000 450])
+saveas(gcf,'RSMSE & SSI','svg')
 
 %% Plot More Figures - Time-Freq Representations
 
@@ -494,7 +507,8 @@ colorlabel = 'Magnitude (normalized)';
 
 % Init figure
 figure (5)
-t1 = tiledlayout(1,2);
+t1 = tiledlayout(3,2);
+
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
 TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
@@ -503,7 +517,12 @@ tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
 ttl.Position(1) = 0;
-ttl.HorizontalAlignment = 'left';  
+ttl.HorizontalAlignment = 'left';
+c = colorbar;
+c.Label.String = colorlabel;
+
+% leave an empty tile
+nexttile
 
 % Plot STFT with Short Window
 nexttile
@@ -517,27 +536,10 @@ ttl.HorizontalAlignment = 'left';
 c = colorbar;
 c.Label.String = colorlabel;
 
-t1.TileSpacing = 'compact';
-t1.Padding = 'loose';
-set(gcf, 'Position', [50 100 1000 450])
-saveas(gcf,'Groundtruth_vs_shortSTFT','svg')
-
-figure (6)
-t2 = tiledlayout(1,2);
-% Plot matrix "grund truth" time-frequency representation.
-nexttile
-TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
-ttl = title('a');
-tt1.FontWeight = 'bold';
-tt1.fontsize = 12;
-ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0;
-ttl.HorizontalAlignment = 'left';  
-
 % Plot STFT with Long Window
 nexttile
 TFRplot(stft_longwin_t, stft_longwin_f, stft_longwin, freqlim, timelim)
-ttl = title('b');
+ttl = title('c');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
@@ -545,28 +547,11 @@ ttl.Position(1) = 0;
 ttl.HorizontalAlignment = 'left';  
 c = colorbar;
 c.Label.String = colorlabel;
-
-t2.TileSpacing = 'compact';
-t2.Padding = 'loose';
-set(gcf, 'Position', [50 100 1000 450])
-saveas(gcf,'Groundtruth_vs_longSTFT','svg')
-
-figure (7)
-t3 = tiledlayout(1,2);
-% Plot matrix "grund truth" time-frequency representation.
-nexttile
-TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
-ttl = title('a');
-tt1.FontWeight = 'bold';
-tt1.fontsize = 12;
-ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; 
-ttl.HorizontalAlignment = 'left';  
 
 % Plot CWT
 nexttile
 TFRplot(t_vec_total, cwlet_f, cwlet, freqlim, timelim)
-ttl = title('b');
+ttl = title('d');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
@@ -575,27 +560,10 @@ ttl.HorizontalAlignment = 'left';
 c = colorbar;
 c.Label.String = colorlabel;
 
-t3.TileSpacing = 'compact';
-t3.Padding = 'loose';
-set(gcf, 'Position', [50 100 1000 450])
-saveas(gcf,'Groundtruth_vs_CWT','svg')
-
-figure (8)
-t4 = tiledlayout(1,2);
-% Plot matrix "grund truth" time-frequency representation.
-nexttile
-TFRplot(groundtruth_t, groundtruth_f, groundtruth, freqlim, timelim)
-ttl = title('a');
-tt1.FontWeight = 'bold';
-tt1.fontsize = 12;
-ttl.Units = 'Normalize'; 
-ttl.Position(1) = 0; 
-ttl.HorizontalAlignment = 'left';  
-
 % Plot Superlets
 nexttile
 TFRplot(t_vec_total, f_vec_total, slt, freqlim, timelim)
-ttl = title('b');
+ttl = title('e');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
 ttl.Units = 'Normalize'; 
@@ -606,5 +574,5 @@ c.Label.String = colorlabel;
 
 t4.TileSpacing = 'compact';
 t4.Padding = 'loose';
-set(gcf, 'Position', [50 100 1000 450])
-saveas(gcf,'Groundtruth_vs_SWT','svg')
+set(gcf, 'Position', [50 100 1000 6000])
+saveas(gcf,'Groundtruth_vs_algoTFRs','svg')

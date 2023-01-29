@@ -345,7 +345,7 @@ while strcmp(run_loop, 'Yes') == 1
         'Enter 0 for additive, or 1 for multiplicative:']};
     dlgtitle = 'Enter Superlet Transform Parameters';
     dims = [1 75];
-    definput = {'3', '10', '40', '1'};
+    definput = {'4', '10', '40', '1'};
     SWT_params = inputdlg(prompt,dlgtitle,dims,definput);
     c1 = str2double(SWT_params(1));                     % Initial number of cycles in superlet.
     order = str2double([SWT_params(2), SWT_params(2)]); % Interval of superresolution orders
@@ -448,7 +448,7 @@ while strcmp(run_loop, 'Yes') == 1
     stft_short = abs(stft_short);  % spectrogram returns complex data. Take absolute value to get magnitude.
     stft_long = abs(stft_long);    % spectrogram returns complex data. Take absolute value to get magnitude.
     cwlet = abs(cwlet);            % cwt returns complex data. Take absolute value to get magnitude.
-    swlet = (swlet);               % nfaslt returns magnitude. No Nothing.
+    swlet = sqrt(swlet);               % nfaslt returns magnitude squared. take square root to get magnitude.
 
     % Perform unit conversions and normalizations on TFRs
     stft_short = TFRunitconvertNorm(stft_short, units);
