@@ -24,10 +24,10 @@ The following algorithms are compared:
 <br>- Fractional adaptive superresolution wavelet transform (aka. Superlets transform, aka. SLT)
 
 "groundtruth_comparison.m"
-<br>This script generates a synthetic animal call, runs it through the four time-frequency analysis algorithms, constructs a "ground truth" time-frequency representation, and measures agreement between ground truth and the algorithm outputs. This script was the basis for the "Qualitative Evaluation - Synthetic Animal Call" and the "Qualitative Evaluation - Synthetic Animal Call" sections of this study.
+<br>This script generates a synthetic animal call, runs it through the four time-frequency analysis algorithms, constructs a "ground truth" time-frequency representation, and measures agreement between ground truth and the algorithm outputs. This script was the basis for the "Qualitative Evaluation - Synthetic Animal Call" and the "Qualitative Evaluation - Synthetic Animal Call" sections of this study. To run, open script, configure the "User Variables" section, hit "Run".
 
 "loadfile_compare_TFRs.m"
-<br>This script loads a .wav audio file and performs time-frequency anayses by the four different methods. Analysis parameters are configured by GUI elements. Results are plotted and saved in a user selected location.
+<br>This script loads a .wav audio file and performs time-frequency anayses by the four different methods. Analysis parameters are configured by GUI elements. Results are plotted and saved in a user selected location. To run, open script, hit "Run". All user interactions are via GUI dialog boxes.
 
 References:
 <br>Moca, V. V., Bârzan, H., Nagy-Dăbâcan, A. & Mureșan, R. C. Time-frequency super-resolution with superlets. Nat. Commun. 12, 337 (2021).
