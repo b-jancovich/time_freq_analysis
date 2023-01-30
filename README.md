@@ -9,7 +9,7 @@ Jancovich, B.A., New Methods for Visualising Animal Sounds, [DOI:preprint], (202
 <br>University of New South Wales, Sydney, Australia
 
 To evaluate the code used to conduct this study, please download the entire repository. 
-The following MATLAB products must be installed:
+<br>The following MATLAB products must be installed:
 <br>-	MATLAB 2022b
 <br>-	MATLAB Signal Processing Toolbox
 <br>-	MATLAB Image Processing Toolbox
