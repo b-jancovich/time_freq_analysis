@@ -358,10 +358,10 @@ rmse_total = [stft_shortwin_totalerror, stft_longwin_totalerror,...
 rmse_total = sort(rmse_total, 'ascend');
 
 % Calculate percent difference between best and 2nd best performer
-rmse_total_pdiff_1st_2nd = 100*(rmse_total(2)-rmse_total(1))./rmse_total(1);
+rmse_total_pdiff_1st_2nd = 100*(abs(rmse_total(1)-rmse_total(2))/((rmse_total(1)+rmse_total(2))/2));
 
 % Calculate percent difference between best and worst performer
-rmse_total_pdiff_1st_4th = 100*(rmse_total(4)-rmse_total(1))./rmse_total(1);
+rmse_total_pdiff_1st_4th = 100*(abs(rmse_total(1)-rmse_total(4))/((rmse_total(1)+rmse_total(4))/2));
 
 % Compare similarity to ground truth via Structural Similarity Index:
 stft_shortwin_SSIM = ssim(stft_shortwin_resz, stft_shortwin_GT);
@@ -377,10 +377,10 @@ SSI = [stft_shortwin_SSIM, stft_longwin_SSIM,...
 SSI = sort(SSI, 'descend');
 
 % Determine percent difference between best and 2nd best performer
-SSI_pdiff_1st_2nd = 100*(SSI(1)-SSI(2))./SSI(2);
+SSI_pdiff_1st_2nd = 100*(abs(SSI(1)-SSI(2))/((SSI(1)+SSI(2))/2));
 
 % Determine percent difference between best and worst performer
-SSI_pdiff_1st_4th = 100*(SSI(1)-SSI(4))./SSI(4);
+SSI_pdiff_1st_4th = 100*(abs(SSI(1)-SSI(4))/((SSI(1)+SSI(4))/2));
 
 % Dynamic STFT Names
 stftshort_name = ['STFT, ', num2str(win_short), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
@@ -435,8 +435,8 @@ saveas(gcf,'Timedomain_Test_signal','svg')
 %% Plot Figure 2 & 3 - Error
 
 % Collate Error data for plotting
-xlabels1 = categorical({'Freq Axis', 'Time Axis', 'Total RMSE'});
-xlabels1 = reordercats(xlabels1,{'Freq Axis', 'Time Axis', 'Total RMSE'});
+xlabels1 = categorical({'Spectral RMSE', 'Temporal RMSE', 'Total RMSE'});
+xlabels1 = reordercats(xlabels1, {'Spectral RMSE', 'Temporal RMSE', 'Total RMSE'});
 ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, cwlet_freqerror, slt_freqerror;
     stft_shortwin_timeerror, stft_longwin_timeerror, cwlet_timeerror, slt_timeerror;
     stft_shortwin_totalerror, stft_longwin_totalerror, cwlet_totalerror, slt_totalerror];
