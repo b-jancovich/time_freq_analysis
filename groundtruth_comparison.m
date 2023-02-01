@@ -350,11 +350,39 @@ slt_freqerror = mean(rmse(slt_resz, slt_GT, 2));
 slt_timeerror = mean(rmse(slt_resz, slt_GT, 1));
 slt_totalerror = rmse(slt_resz, slt_GT, 'all');
 
+% Gather RMSE scores
+rmse_freq = [stft_shortwin_freqerror, stft_longwin_freqerror,...
+    cwlet_freqerror, slt_freqerror];
+rmse_time = [stft_shortwin_timeerror, stft_longwin_timeerror,...
+    cwlet_timeerror, slt_timeerror];
+rmse_total = [stft_shortwin_totalerror, stft_longwin_totalerror,...
+    cwlet_totalerror, slt_totalerror];
+
+% Sort scores by error, low to high
+rmse_freq = sort(rmse_freq, 'ascend');
+rmse_time = sort(rmse_time, 'ascend');
+rmse_total = sort(rmse_total, 'ascend');
+
+% Calculate percent difference between best and 2nd best performer
+rmse_freq_pdiff = 100*(rmse_freq(2)-rmse_freq(1))./rmse_freq(1);
+rmse_time_pdiff = 100*(rmse_time(2)-rmse_time(1))./rmse_time(1);
+rmse_total_pdiff = 100*(rmse_total(2)-rmse_total(1))./rmse_total(1);
+
 % Compare similarity to ground truth via Structural Similarity Index:
 stft_shortwin_SSIM = ssim(stft_shortwin_resz, stft_shortwin_GT);
 stft_longwin_SSIM = ssim(stft_longwin_resz, stft_longwin_GT);
 cwlet_SSIM = ssim(cwlet_resz, cwlet_GT);
 slt_SSIM = ssim(slt_resz, slt_GT);
+
+% Gather SSI scores
+SSI = [stft_shortwin_SSIM, stft_longwin_SSIM,...
+    cwlet_SSIM, slt_SSIM];
+
+% Sort scores by similarity, high to low
+SSI = sort(SSI, 'descend');
+
+% Determine percent difference between best and 2nd best performer
+SSI_pdiff = 100*(SSI(1)-SSI(2))./SSI(2);
 
 % Dynamic STFT Names
 stftshort_name = ['STFT, ', num2str(win_short), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
