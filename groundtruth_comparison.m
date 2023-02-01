@@ -351,22 +351,17 @@ slt_timeerror = mean(rmse(slt_resz, slt_GT, 1));
 slt_totalerror = rmse(slt_resz, slt_GT, 'all');
 
 % Gather RMSE scores
-rmse_freq = [stft_shortwin_freqerror, stft_longwin_freqerror,...
-    cwlet_freqerror, slt_freqerror];
-rmse_time = [stft_shortwin_timeerror, stft_longwin_timeerror,...
-    cwlet_timeerror, slt_timeerror];
 rmse_total = [stft_shortwin_totalerror, stft_longwin_totalerror,...
     cwlet_totalerror, slt_totalerror];
 
 % Sort scores by error, low to high
-rmse_freq = sort(rmse_freq, 'ascend');
-rmse_time = sort(rmse_time, 'ascend');
 rmse_total = sort(rmse_total, 'ascend');
 
 % Calculate percent difference between best and 2nd best performer
-rmse_freq_pdiff = 100*(rmse_freq(2)-rmse_freq(1))./rmse_freq(1);
-rmse_time_pdiff = 100*(rmse_time(2)-rmse_time(1))./rmse_time(1);
-rmse_total_pdiff = 100*(rmse_total(2)-rmse_total(1))./rmse_total(1);
+rmse_total_pdiff_1st_2nd = 100*(rmse_total(2)-rmse_total(1))./rmse_total(1);
+
+% Calculate percent difference between best and worst performer
+rmse_total_pdiff_1st_4th = 100*(rmse_total(4)-rmse_total(1))./rmse_total(1);
 
 % Compare similarity to ground truth via Structural Similarity Index:
 stft_shortwin_SSIM = ssim(stft_shortwin_resz, stft_shortwin_GT);
@@ -382,7 +377,10 @@ SSI = [stft_shortwin_SSIM, stft_longwin_SSIM,...
 SSI = sort(SSI, 'descend');
 
 % Determine percent difference between best and 2nd best performer
-SSI_pdiff = 100*(SSI(1)-SSI(2))./SSI(2);
+SSI_pdiff_1st_2nd = 100*(SSI(1)-SSI(2))./SSI(2);
+
+% Determine percent difference between best and worst performer
+SSI_pdiff_1st_4th = 100*(SSI(1)-SSI(4))./SSI(4);
 
 % Dynamic STFT Names
 stftshort_name = ['STFT, ', num2str(win_short), 'pt. Window']; %, num2str(overlap2), ' % Overlap'
@@ -430,7 +428,7 @@ xlabel('Time (Seconds)');
 set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 
-t1.Padding = "loose"
+t1.Padding = "loose";
 set(gcf, 'Position', [50 100 1000 500])
 saveas(gcf,'Timedomain_Test_signal','svg')
 
@@ -442,8 +440,8 @@ xlabels1 = reordercats(xlabels1,{'Freq Axis', 'Time Axis', 'Total RMSE'});
 ydata1 = [stft_shortwin_freqerror, stft_longwin_freqerror, cwlet_freqerror, slt_freqerror;
     stft_shortwin_timeerror, stft_longwin_timeerror, cwlet_timeerror, slt_timeerror;
     stft_shortwin_totalerror, stft_longwin_totalerror, cwlet_totalerror, slt_totalerror];
-xlabels2 = categorical({[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SWT'});
-xlabels2 = reordercats(xlabels2,{[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SWT'});
+xlabels2 = categorical({[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SLT'});
+xlabels2 = reordercats(xlabels2,{[num2str(win_short), 'pt ', 'STFT'], [num2str(win_long), 'pt ', 'STFT'], 'CWT', 'SLT'});
 ydata2 = [stft_shortwin_SSIM, stft_longwin_SSIM, cwlet_SSIM, slt_SSIM];
 
 % Plot label rounding
@@ -481,7 +479,7 @@ labels4 = string(round(b1(4).YData, np1));
 text(xtips4,ytips4,labels4,'HorizontalAlignment','left',...
     'VerticalAlignment','middle','Rotation',90,'FontSize',12, FontName='Calibri')
 ylim([0 0.3])
-lg = legend(stftshort_name, stftlong_name, 'CWT', 'SWT');
+lg = legend(stftshort_name, stftlong_name, 'CWT', 'SLT');
 lg.Location = 'Northwest';
 ylabel 'RMSE re. Ground Truth'
 grid on
@@ -498,8 +496,8 @@ xtickangle(90)
 % saveas(gcf,'Final_methods_analytical_RMSE_TF','svg')
 
 % Plot SSI
-xlabels3 = categorical({[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SWT'});
-% xlabels3 = reordercats(xlabels2,{[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SWT'});
+xlabels3 = categorical({[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SLT'});
+xlabels3 = reordercats(xlabels3,{[num2str(win_short), 'pt ', newline, 'STFT'], [num2str(win_long), 'pt ', newline, 'STFT'], 'CWT', 'SLT'});
 nexttile
 % figure(4)
 b2 = bar(xlabels3, ydata2);
