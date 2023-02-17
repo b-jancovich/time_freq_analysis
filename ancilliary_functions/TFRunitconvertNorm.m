@@ -28,5 +28,8 @@ switch units
         matOUT = mat .^2;  
     case 'powdb'
         matOUT = 10*log10(mat .^2);   
+    otherwise 
+        warning('invalud unit selection - matrix normalised, but units not converted')
+        matOUT = mat;
 end
 end
