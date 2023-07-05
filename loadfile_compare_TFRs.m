@@ -246,8 +246,8 @@ switch resample
                 1024, original_fs, "yaxis");
             [s2, f2, t2] = spectrogram(signal_downsamp,  ceil(W*fs), ceil(O*fs),...
                 1024, fs, "yaxis");
-            s1 = 20*log10(abs(s1) .^ 2);
-            s2 = 20*log10(abs(s2) .^ 2);
+            s1 = 10*log10(abs(s1) .^ 2);
+            s2 = 10*log10(abs(s2) .^ 2);
             s1 = s1 ./ max(abs(s1));
             s2 = s2 ./ max(abs(s2));
             figure(1)
@@ -311,11 +311,12 @@ while strcmp(run_loop, 'Yes') == 1
     prompt = {['Enter number of points to use in STFT Fourier transform:', newline,...
         'NOTE: Values other than the default will change STFT ',...
         'frequency resolution from the global setting, and high values ',...
-        'will result in long compute times.'],...
-        'Enter Short-STFT Window Size (pts):',...
-        'Enter Short-STFT overlap amount (%):',...
-        'Enter Long-STFT window size (pts):',...
-        'Enter Long-STFT overlap amount (%):'};
+        'will result in long compute times.', newline, newline,...
+        'Enter FFT Length (pts):'],...
+        'Enter long-STFT Window Size (pts):',...
+        'Enter long-STFT overlap amount (%):',...
+        'Enter short-STFT window size (pts):',...
+        'Enter short-STFT overlap amount (%):'};
     dlgtitle = 'Enter Short-Time Fourier Transform Parameters';
     dims = [1 75];
     definput = {num2str(fs/f_res), '250', '75', '50', '75'};
@@ -494,6 +495,8 @@ while strcmp(run_loop, 'Yes') == 1
                 freqticks = fmin:50:fmax;
             elseif (fmax-fmin) > 500 && (fmax-fmin) < 1500
                 freqticks = fmin:100:fmax;
+            elseif (fmax-fmin) > 1500 && (fmax-fmin) < 100000
+                freqticks = fmin:1000:fmax;
             end
     end
 
@@ -519,7 +522,10 @@ while strcmp(run_loop, 'Yes') == 1
 
     % Plot STFT with Short Window
     nexttile([2,1])
-    surf(stftshort_freq, stftshort_time, stft_short', EdgeColor = 'none', FaceColor='texturemap')
+    % surf(stftshort_freq, stftshort_time, stft_short', EdgeColor = 'none', FaceColor='texturemap')
+    p1 = pcolor(stftshort_time, stftshort_freq, stft_short);
+    p1.EdgeColor = 'none';
+    p1.FaceColor = 'texturemap';
     ttl = title('b'); %  - ', stftshort_name, ' Spectrogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
@@ -528,12 +534,13 @@ while strcmp(run_loop, 'Yes') == 1
     ttl.HorizontalAlignment = 'left';
     axis on
     grid on
-    xlabel('Frequency (Hz)');
-    ylabel('Time (Seconds)');
-    xlim(freqlim)
-    ylim(timelim)
-    xticks(freqticks)
-    set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    ylabel('Frequency (Hz)');
+    xlabel('Time (Seconds)');
+    ylim(freqlim)
+    xlim(timelim)
+    yticks(freqticks)
+    % set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    set(gca, XDir="normal", xscale = freqplotscaling)
     ax = gca;
     ax.Layer = 'top';
     ax.GridColor = [1 1 1];
@@ -548,7 +555,10 @@ while strcmp(run_loop, 'Yes') == 1
 
     % Plot STFT with Long Window
     nexttile([2,1])
-    surf(stftlong_freq, stftlong_time, stft_long', EdgeColor = 'none', FaceColor='texturemap')
+    % surf(stftlong_freq, stftlong_time, stft_long', EdgeColor = 'none', FaceColor='texturemap')
+    p2 = pcolor(stftlong_time, stftlong_freq, stft_long);
+    p2.EdgeColor = 'none';
+    p2.FaceColor = 'texturemap';
     ttl = title('c'); %  - ', stftlong_name, ' Spectrogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
@@ -557,12 +567,13 @@ while strcmp(run_loop, 'Yes') == 1
     ttl.HorizontalAlignment = 'left';
     axis on
     grid on
-    xlabel('Frequency (Hz)');
-    ylabel('Time (Seconds)');
-    xlim(freqlim)
-    ylim(timelim)
-    xticks(freqticks)
-    set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    ylabel('Frequency (Hz)');
+    xlabel('Time (Seconds)');
+    ylim(freqlim)
+    xlim(timelim)
+    yticks(freqticks)
+    % set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    set(gca, XDir="normal", xscale = freqplotscaling)
     ax = gca;
     ax.Layer = 'top';
     ax.GridColor = [1 1 1];
@@ -577,7 +588,10 @@ while strcmp(run_loop, 'Yes') == 1
 
     % Plot CWT
     nexttile([2,1])
-    surf(f_cwt, t_vec, cwlet', EdgeColor="none", FaceColor="texturemap")
+    % surf(f_cwt, t_vec, cwlet', EdgeColor="none", FaceColor="texturemap")
+    p3 = pcolor(t_vec, f_cwt, cwlet);
+    p3.EdgeColor = 'none';
+    p3.FaceColor = 'texturemap';
     ttl = title('d'); %  - CWT Scalogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
@@ -586,12 +600,13 @@ while strcmp(run_loop, 'Yes') == 1
     ttl.HorizontalAlignment = 'left';
     axis on
     grid on
-    xlabel('Frequency (Hz)');
-    ylabel('Time (Seconds)');
-    xlim(freqlim)
-    ylim(timelim)
-    xticks(freqticks)
-    set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    ylabel('Frequency (Hz)');
+    xlabel('Time (Seconds)');
+    ylim(freqlim)
+    xlim(timelim)
+    yticks(freqticks)
+    % set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    set(gca, XDir="normal", xscale = freqplotscaling)
     ax = gca;
     ax.Layer = 'top';
     ax.GridColor = [1 1 1];
@@ -606,7 +621,10 @@ while strcmp(run_loop, 'Yes') == 1
 
     % Plot Superlets
     nexttile([2,1])
-    surf(f_vec, t_vec, swlet', EdgeColor="none", FaceColor="texturemap")
+    % surf(f_vec, t_vec, swlet', EdgeColor="none", FaceColor="texturemap")
+    p4 = pcolor(t_vec, f_vec, swlet);
+    p4.EdgeColor = 'none';
+    p4.FaceColor = 'texturemap';
     ttl = title('e'); %  - SWT Scalogram'
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
@@ -615,12 +633,13 @@ while strcmp(run_loop, 'Yes') == 1
     ttl.HorizontalAlignment = 'left';
     axis on
     grid on
-    xlabel('Frequency (Hz)');
-    ylabel('Time (Seconds)');
-    xlim(freqlim)
-    ylim(timelim)
-    xticks(freqticks)
-    set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    ylabel('Frequency (Hz)');
+    xlabel('Time (Seconds)');
+    ylim(freqlim)
+    xlim(timelim)
+    yticks(freqticks)
+    % set(gca, XDir="reverse", View=[90 90], xscale = freqplotscaling)
+    set(gca, XDir="normal", xscale = freqplotscaling)
     ax = gca;
     ax.Layer = 'top';
     ax.GridColor = [1 1 1];
