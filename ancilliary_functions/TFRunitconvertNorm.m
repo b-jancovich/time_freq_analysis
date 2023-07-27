@@ -2,7 +2,7 @@ function matOUT = TFRunitconvertNorm(matIN, units)
 % This function ingests a matrix time-frequency representation and converts
 % the intensity units according to the argument "units". The result is then
 % normalized to max(matIN) = 1.
-
+%
 % Input:
 % matIN = [NxM] matrix of time-frequency data (expected format is real magnitude)
 % units = string, sets the units of the output, matOUT.
