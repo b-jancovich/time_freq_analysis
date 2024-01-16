@@ -319,7 +319,7 @@ while strcmp(run_loop, 'Yes') == 1
         'Enter short-STFT overlap amount (%):'};
     dlgtitle = 'Enter Short-Time Fourier Transform Parameters';
     dims = [1 75];
-    definput = {num2str(fs/f_res), '250', '75', '50', '75'};
+    definput = {num2str(fs/f_res), '250', '90', '50', '90'};
     STFT_params = inputdlg(prompt,dlgtitle,dims,definput);
     n_fft = str2double(STFT_params(1));         % STFT FFT length (samples)
     win_long = str2double(STFT_params(2));      % Window length for longSTFT (samples)
@@ -362,7 +362,7 @@ while strcmp(run_loop, 'Yes') == 1
         'Frequency Axis Scaling', 'lin', 'log', 'log');
 
     % Select between the following signal strength units:
-    list = {'magnitude', 'magdb', 'power', 'powdb'};
+    list = {'power', 'powdb', 'magnitude', 'magdb'};
     % 'magnitude'   - Units remain unchanged, function only applies normalization.
     % 'magdb'       - Magnitude, expressed on a log scale, ie Decibels.
     % 'power'       - Power expressed on a linear scale, ie watts.
