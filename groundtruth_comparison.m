@@ -236,8 +236,8 @@ slt_resz = imresize(slt, size(slt_GT), Method=resize_method);
 % side-by-side with their corresponding grounstruth TFRs to make sure they
 % are appropriately scaled, and there are no erronious frequency or time
 % shifts:
-figure(1)
-tiledlayout(1,2)
+fig1 = figure(1);
+t1 = tiledlayout(fig1, 1,2);
 nexttile
 imagesc(abs(cwlet_resz))
 title('cwt')
@@ -389,11 +389,11 @@ stftlong_name = ['STFT, ', num2str(win_long), 'pt. Window']; % , num2str(overlap
 %% Plot Figure 1 - Time Domain Signal
 
 % Test signal
-figure(2)
-t1 = tiledlayout(3, 1);
+fig2 = figure(2);
+t2 = tiledlayout(fig2, 3, 1);
 nexttile
 plot(t_vec_total, sig_c_sil)
-ylabel('Amplitude (arb.)', FontWeight='normal');
+ylabel('Amp (arb.)', FontWeight='normal');
 ttl = title('a');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -405,7 +405,7 @@ set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 nexttile
 plot(t_vec_total, sig_am_sil)
-ylabel('Amplitude (arb.)', FontWeight='normal');
+ylabel('Amp (arb.)', FontWeight='normal');
 ttl = title('b');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -417,7 +417,7 @@ set(gca, FontSize=12, FontName='Calibri')
 ylim([-.2 1.2])
 nexttile
 plot(t_vec_total, signal)
-ylabel('Amplitude (arb.)', FontWeight='normal');
+ylabel('Amp (arb.)', FontWeight='normal');
 ttl = title('c');
 tt1.FontWeight = 'bold';
 tt1.fontsize = 12;
@@ -429,8 +429,15 @@ set(gca, FontSize=12, FontName='Calibri')
 ylim([-1.5 1.5])
 
 t1.Padding = "loose";
-set(gcf, 'Position', [50 100 1000 500])
-saveas(gcf,'Timedomain_Test_signal','svg')
+% set(gcf, 'Position', [50 100 1000 500])
+% saveas(gcf,'Timedomain_Test_signal','svg')
+
+fileName = 'Figure_5_synthetic_testSignal';
+figWidth = 100; % percent of page
+figHeight = 40; % percent of page
+textSize = 12;
+figtoo = 1;
+fig2A4(fig2, figWidth, figHeight, fileName, textSize, figtoo, t2)
 
 %% Plot Figure 2 & 3 - Error
 
@@ -454,8 +461,8 @@ np6 = 3;
 np7 = 3;
 
 % Plot RMSE
-figure(3)
-tiledlayout(1, 2)
+fig3 = figure(3);
+t3 = tiledlayout(fig3, 1, 2);
 nexttile
 b1 = bar(xlabels1, ydata1);
 xtips1 = b1(1).XEndPoints;
@@ -518,11 +525,18 @@ grid on
 set(gca, FontSize=12, FontName='Calibri')
 xtickangle(90)
 
+fileName = 'Figure_9_groundtruth_Vs_Agorithmic_RMSE_SSI';
+figWidth = 130;
+figHeight = 50;
+textSize = 12;
+figtoo = 1;
+fig2A4(fig3, figWidth, figHeight, fileName, textSize, figtoo, t3)
+
 % set(gcf, 'Position', [50 100 350 300])
 % saveas(gcf,'Final_methods_ERROR_analytical_SSI','svg')
 
-set(gcf, 'Position', [50 50 1000 450])
-saveas(gcf,'RSMSE & SSI','svg')
+% set(gcf, 'Position', [50 50 1000 450])
+% saveas(gcf,'RSMSE & SSI','svg')
 
 %% Plot More Figures - Time-Freq Representations
 
@@ -532,8 +546,8 @@ timelim = [0 7];
 colorlabel = 'Magnitude (normalized)';
 
 % Init figure
-figure (5)
-t1 = tiledlayout(3,2);
+fig5 = figure(5);
+t5 = tiledlayout(fig5, 3,2);
 
 % Plot matrix "grund truth" time-frequency representation.
 nexttile
@@ -600,5 +614,94 @@ c.Label.String = colorlabel;
 
 t4.TileSpacing = 'compact';
 t4.Padding = 'loose';
-set(gcf, 'Position', [50 100 1000 6000])
-saveas(gcf,'Groundtruth_vs_algoTFRs','svg')
+
+fileName = 'Figure_10_groundtruth_Vs_Agorithmic_TFRs';
+figWidth = 100;
+figHeight = 70;
+textSize = 12;
+figtoo = 1;
+fig2A4(fig5, figWidth, figHeight, fileName, textSize, figtoo, t5)
+
+% set(gcf, 'Position', [50 100 1000 6000])
+% saveas(gcf,'Groundtruth_vs_algoTFRs','svg')
+
+%% Figure save function
+
+function fig2A4(fig, figWidth, figHeight, fileName, textSize, figtoo, tileObj)
+% Saves the figure handle passed in as a TIFF file with figure size 
+% specified as percentage of an A4 page size, accounting for margins.
+%
+% Inputs:
+% fig = matlab figure handle
+% figWidth = desired width of the figure, as a % of the usable page
+% figHeight = desired height of the figure, as a % of the usable page
+% fileName = the desired filename. Do not include a file extension
+% textSize = the font size to use for the figure (pt)
+% figtoo = choose to export the .fig file, as well as the TIFF (1=yes, 0=no)
+% tileObj = if the figure uses tiledObject method, pass the handle for the
+% tiledlayout object. If not, do not omit, set as empty [].
+%
+% Saves the file to the current working folder, unless a valid filepath is
+% specified as part of the filename.
+
+% All sizes are relative to A4 Page Size:
+pageSize = [21, 29.7]; % The size of the page in Word (cm)
+pageMargins = 2.54; % The size of the default page margins in Word (cm)
+
+% Set the usable size of the page
+usableSize = [pageSize(1) - 2*pageMargins, pageSize(2) - 2*pageMargins,];
+
+% Set figure width from percentage and usable size
+figWidth = usableSize(1) * (figWidth / 100);
+
+% Set figure height from percentage and usable size
+figHeight = usableSize(2) * (figHeight / 100);
+
+% Set the units to cm
+fig.Units = 'centimeters';
+
+% Set the size ad position of the figure 
+% [dist from left, dist from bottom, width, height]
+fig.Position = [pageMargins, pageMargins, figWidth, figHeight];
+
+% Set font size of all text to 12
+set(findall(fig,'type','text'),'FontSize', textSize)
+
+% Adjust axis font sizes according to tiled layout
+if isempty(tileObj)
+    ax = fig.Children;
+    % Set font size of axes to 12
+    set(ax, "FontSize", textSize)
+    set(ax, "FontName", 'calibri');
+else
+    % How many axis objects are children of the tiled layout object?
+    nTiles = length(tileObj.Children);
+
+    % For every child axis object, 
+    for i = 1:nTiles
+        % get the current tile's axis handle:
+        ax = tileObj.Children(i);
+
+        % set the font size of the current axis
+        set(ax, "FontSize", textSize)
+       
+        % set the font name of the current axis
+        set(ax, "FontName", 'calibri');
+        
+        if strcmp(ax.Type, 'axis') == 1
+            % Ensure both major and minor gridlines are shown
+            set(ax, 'XMinorGrid', 'on', 'YMinorGrid', 'on')
+        end
+    end
+end
+
+% Save figure as high-resolution TIFF
+print(fig, fileName, '-dtiff', '-r300')
+
+% Optionally, save the .fig file too.
+if figtoo == 1
+    savefig(fig, [fileName, '.fig'])
+end
+end
+
+

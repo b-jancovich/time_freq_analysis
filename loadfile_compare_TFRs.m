@@ -9,6 +9,11 @@ uiwait(msgbox('Please select a .wav file to analyse...'));
 [file, path] = uigetfile('.wav', 'Load WAV file:');
 [signal, original_fs] = audioread(fullfile(path, file));
 
+
+%% Add ancillary functions folder to path:
+here = pwd;
+addpath(fullfile(here, "ancilliary_functions"));
+
 %% Strip Excess Channels
 
 % Ensure signal is mono:
@@ -482,21 +487,25 @@ while strcmp(run_loop, 'Yes') == 1
 
     timelim = [0, t_vec(end)];
     freqlim = [fmin, fmax];
-
+    
     switch freqplotscaling
         case 'log'
             mid_tick =  round((fmax-(fmax/2)), -2);
             low_tick = round((fmax-fmin)*0.2, -2);
             freqticks = [fmin, low_tick, mid_tick, fmax];
         case 'lin'
-            if (fmax-fmin) > 10 && (fmax-fmin) < 125
+            if (fmax-fmin) >= 10 && (fmax-fmin) < 125
                 freqticks = fmin:10:fmax;
-            elseif (fmax-fmin) >125 && (fmax-fmin) < 500
+            elseif (fmax-fmin) >= 125 && (fmax-fmin) < 500
                 freqticks = fmin:50:fmax;
-            elseif (fmax-fmin) > 500 && (fmax-fmin) < 1500
-                freqticks = fmin:100:fmax;
-            elseif (fmax-fmin) > 1500 && (fmax-fmin) < 100000
+            elseif (fmax-fmin) >= 500 && (fmax-fmin) < 1500
+                freqticks = fmin:200:fmax;
+            elseif (fmax-fmin) >= 1500 && (fmax-fmin) < 5000
                 freqticks = fmin:1000:fmax;
+            elseif (fmax-fmin) >= 5000 && (fmax-fmin) < 15000
+                freqticks = fmin:2000:fmax;
+            elseif (fmax-fmin) >= 15000 && (fmax-fmin) < 100000
+                freqticks = fmin:10000:fmax;
             end
     end
 
@@ -505,11 +514,11 @@ while strcmp(run_loop, 'Yes') == 1
     stftlong_name = ['STFT, ', num2str(win_long), 'pt. Window'];
 
     % Time domain
-    figure(1)
-    t1 = tiledlayout(9, 1);
-    nexttile([1,1])
+    fig1 = figure(1);
+    t1 = tiledlayout(fig1, 14, 1);
+    nexttile([2,1])
     plot(t_vec, signal)
-    ylabel('Amplitude (arbitrary)', FontWeight='normal');
+    ylabel('Amp (arb.)', FontWeight='normal');
     ttl = title('a'); %  - Time Domain Signal
     tt1.FontWeight = 'bold';
     tt1.fontsize = 12;
@@ -521,7 +530,7 @@ while strcmp(run_loop, 'Yes') == 1
     xlim(timelim)
 
     % Plot STFT with Short Window
-    nexttile([2,1])
+    nexttile([3,1])
     % surf(stftshort_freq, stftshort_time, stft_short', EdgeColor = 'none', FaceColor='texturemap')
     p1 = pcolor(stftshort_time, stftshort_freq, stft_short);
     p1.EdgeColor = 'none';
@@ -554,7 +563,7 @@ while strcmp(run_loop, 'Yes') == 1
     c.Label.String = magnitude_unit;
 
     % Plot STFT with Long Window
-    nexttile([2,1])
+    nexttile([3,1])
     % surf(stftlong_freq, stftlong_time, stft_long', EdgeColor = 'none', FaceColor='texturemap')
     p2 = pcolor(stftlong_time, stftlong_freq, stft_long);
     p2.EdgeColor = 'none';
@@ -587,7 +596,7 @@ while strcmp(run_loop, 'Yes') == 1
     c.Label.String = magnitude_unit;
 
     % Plot CWT
-    nexttile([2,1])
+    nexttile([3,1])
     % surf(f_cwt, t_vec, cwlet', EdgeColor="none", FaceColor="texturemap")
     p3 = pcolor(t_vec, f_cwt, cwlet);
     p3.EdgeColor = 'none';
@@ -620,7 +629,7 @@ while strcmp(run_loop, 'Yes') == 1
     c.Label.String = magnitude_unit;
 
     % Plot Superlets
-    nexttile([2,1])
+    nexttile([3,1])
     % surf(f_vec, t_vec, swlet', EdgeColor="none", FaceColor="texturemap")
     p4 = pcolor(t_vec, f_vec, swlet);
     p4.EdgeColor = 'none';
@@ -653,14 +662,20 @@ while strcmp(run_loop, 'Yes') == 1
     c.Label.String = magnitude_unit;
 
     t1.Padding = 'compact';
-    set(gcf, 'Position', [10 10 1000 2100])
+    % set(gcf, 'Position', [10 10 1000 2100])
 
     % Close progress bar
     close(wbar)
 
     % Save figures
-    savename = [file(1:end-4), '_', paramstoprint, '.svg'];
-    saveas(gcf, fullfile(savepath,savename), 'svg')
+    savename = [file(1:end-4), '_', paramstoprint, '.tif'];
+    figWidth = 100; % percent of page
+    figHeight = 80; % percent of page
+    textSize = 12; % pt
+    figtoo = 1;
+    fig2A4(fig1, figWidth, figHeight, savename, textSize, figtoo, t1)
+
+
     %% User Interaction: Optional Audio Playback
 
     play = questdlg('Do you want to playback original audio?',...
@@ -677,3 +692,85 @@ while strcmp(run_loop, 'Yes') == 1
     run_loop = questdlg('Do you want to re-run the TF analysis on the same audio?', 'Re-Run Analysis?', 'Yes', 'No', 'No');
 
 end
+
+
+%% Figure save function
+
+function fig2A4(fig, figWidth, figHeight, fileName, textSize, figtoo, tileObj)
+% Saves the figure handle passed in as a TIFF file with figure size 
+% specified as percentage of an A4 page size, accounting for margins.
+%
+% Inputs:
+% fig = matlab figure handle
+% figWidth = desired width of the figure, as a % of the usable page
+% figHeight = desired height of the figure, as a % of the usable page
+% fileName = the desired filename, including the file extension ".tif"
+% textSize = the font size to use for the figure (pt)
+% figtoo = choose to export the .fig file, as well as the TIFF (1=yes, 0=no)
+% tileObj = if the figure uses tiledObject method, pass the handle for the
+% tiledlayout object. If not, do not omit, set as empty [].
+%
+% Saves the file to the current working folder, unless a valid filepath is
+% specified as part of the filename.
+
+% All sizes are relative to A4 Page Size:
+pageSize = [21, 29.7]; % The size of the page in Word (cm)
+pageMargins = 2.54; % The size of the default page margins in Word (cm)
+
+% Set the usable size of the page
+usableSize = [pageSize(1) - 2*pageMargins, pageSize(2) - 2*pageMargins,];
+
+% Set figure width from percentage and usable size
+figWidth = usableSize(1) * (figWidth / 100);
+
+% Set figure height from percentage and usable size
+figHeight = usableSize(2) * (figHeight / 100);
+
+% Set the units to cm
+fig.Units = 'centimeters';
+
+% Set the size ad position of the figure 
+% [dist from left, dist from bottom, width, height]
+fig.Position = [pageMargins, pageMargins, figWidth, figHeight];
+
+% Set font size of all text to 12
+set(findall(fig,'type','text'),'FontSize', textSize)
+
+% Adjust axis font sizes according to tiled layout
+if isempty(tileObj)
+    ax = fig.Children;
+    % Set font size of axes to 12
+    set(ax, "FontSize", textSize)
+    set(ax, "FontName", 'calibri');
+else
+    % How many axis objects are children of the tiled layout object?
+    nTiles = length(tileObj.Children);
+
+    % For every child axis object, 
+    for i = 1:nTiles
+        % get the current tile's axis handle:
+        ax = tileObj.Children(i);
+
+        % set the font size of the current axis
+        set(ax, "FontSize", textSize)
+       
+        % set the font name of the current axis
+        set(ax, "FontName", 'calibri');
+        
+        if strcmp(ax.Type, 'axis') == 1
+            % Ensure both major and minor gridlines are shown
+            set(ax, 'XMinorGrid', 'on', 'YMinorGrid', 'on')
+        end
+    end
+end
+
+% Save figure as high-resolution TIFF
+print(fig, fileName, '-dtiff', '-r300')
+
+% Optionally, save the .fig file too.
+if figtoo == 1
+    savefig(fig, [fileName(1:end-4), '.fig'])
+end
+end
+
+
