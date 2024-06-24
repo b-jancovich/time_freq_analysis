@@ -3,7 +3,7 @@
 This repository contains MATLAB functions and scripts used to evaluate algorithms for the time-frequency analysis of animal vocalisations.
 The code was written as part of the following study:
 
-Jancovich, B.A., New Methods for Visualising Animal Sounds, [DOI:preprint], (2023)
+Jancovich, B.A., Rogers, T.L., BASSA: New software tool reveals hidden details in visualisation of low‐frequency animal sounds (2024)
 <br>Centre for Marine Science and Innovation
 <br>School of Biological, Earth and Environmental Sciences
 <br>University of New South Wales, Sydney, Australia
